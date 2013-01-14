@@ -7,12 +7,12 @@ jQuery(function () {
 	}).then(function (config) {
 		var player;
 
-		player = new Player({
+		player = new Levels.Player({
 			config:config
 		}).render();
 
 		getNextTrack(player);
-		jQuery(player.el).on('ended', function (e) {
+		jQuery(this._audioTag).on('ended', function (e) {
 			
 			if (player.trackPercent() > 50) {
 				getNextTrack();
@@ -27,7 +27,7 @@ jQuery(function () {
 function getNextTrack(player) {
 
 	jQuery.ajax({
-		url: "/song",
+		url: "/users/1/stations/1/song",
 		contentType: "json"
 	}).then(function (trackJSON) {
 		var track = new Soundcloud.Track(trackJSON);
@@ -36,4 +36,5 @@ function getNextTrack(player) {
 		player.play();
 
 	})
+	
 }

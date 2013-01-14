@@ -1,11 +1,10 @@
-var Station = require('./app/station').Station, Levels = require('./lib/levels').levels, sc = require('./lib/soundcloud').sc, express = require('express'), q = require('q');
+var User = require('./app/models/user').User, Station = require('./app/models/station').Station, Levels = require('./lib/levels').levels, sc = require('./lib/soundcloud').sc, express = require('express'), q = require('q');
 
 
 function launchServer() {
 	'use_strict';
 
 	var app = express();
-	sc.setConfig(Levels.config.soundcloud);
 
 	app.configure(function () {
 	  	app.use(express.static(__dirname + '/public'));
@@ -24,13 +23,17 @@ function launchServer() {
 
 	});
 
-	app.get('/song', function(req, res){
-		var station = Station.seed("dave-airborne", sc)
-						.then(function (tracks) {
-							res.writeHead(200, { 'Content-Type': 'application/json' });
-							res.write(JSON.stringify(tracks[0]));
-							res.end();
-						});
+	app.get('/users/1/stations/1/song', function(req, res) {
+		var user, station, track;
+
+		user = User.find(1);
+		station = user.find_station(1);
+		station.pickTrack()
+			.then(function (track) {
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.write(JSON.stringify(track));
+				res.end();
+			});
 	});
 
 	var port = process.env.PORT || 3000;
