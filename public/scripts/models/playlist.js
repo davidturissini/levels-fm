@@ -1,0 +1,1 @@
+var Playlist = Backbone.Model.Extend({})
