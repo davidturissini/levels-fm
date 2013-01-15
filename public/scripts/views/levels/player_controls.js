@@ -7,6 +7,7 @@ Levels.Player.Controls = Backbone.View.extend({
 
 	_stop: null,
 	_playPause: null,
+	_next: null,
 
 	_drawElements: function () {
 
@@ -26,12 +27,20 @@ Levels.Player.Controls = Backbone.View.extend({
 			this.options.player.playPause();
 		}.bind(this));
 
+		this._next = document.createElement('a');
+		this._next.className = 'next';
+		this._next.innerHTML = 'Next';
+
+		jQuery(this._next).on('click', function () {
+			getNextTrack(this.options.player);
+		}.bind(this));
+
 	},
 
 	render: function () {
 		this._drawElements();
 
-		[this._playPause, this._stop].forEach(function (ui) {
+		[this._playPause, this._stop, this._next].forEach(function (ui) {
 			this.el.appendChild(ui);
 		}.bind(this))
 

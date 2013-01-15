@@ -1,39 +1,32 @@
 var Station = function (options) {
-	var Track = require('./track').Track, _tracks = [], q = require('q'), sc = require('./../../lib/soundcloud').sc;
+	var SCUser = require('./soundcloud/user').user, Track = require('./track').Track, _tracks = [], q = require('q'), sc = require('./../../lib/soundcloud').sc;
 
 	this.options = options || {};
 
 	this.addTracks = function (tracks) {
 		tracks.forEach(function (track) {
-			if (track.duration <= 600000) {
+			if (track.duration <= 600000 && track.streamable === true) {
 				_tracks.push(track);
 			}
 		})
 
-		console.log(_tracks.length)
 	}
 
 	this.build = function (deferred) {
-		var station = this;
+		var station = this, scUser;
 
-		sc.get('/users/dave-airborne/tracks').then(function (tracks) {
+		scUser = new SCUser({
+			permalink: 'dave-airborne'
+		});
 
-			sc.get('/users/dave-airborne/followings').then(function (users) {
-				var usersProcessed = 0;
+		scUser.graph({
+			depth:3
 
-				users.forEach(function (user) {
-					sc.get('/users/' + user.permalink + '/tracks').then(function (tracks) {
-						station.addTracks(tracks);
-						usersProcessed += 1;
-
-						if (usersProcessed === users.length) {
-							deferred.resolve(station.getRandomTrack());
-						}
-
-					})
-				})
-
-			});
+		}).then(function (followings) {
+			followings.tracks().then(function (tracks) {
+				station.addTracks(tracks);
+				deferred.resolve(station.getRandomTrack());
+			})
 
 		});
 
