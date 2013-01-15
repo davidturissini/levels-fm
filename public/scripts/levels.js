@@ -12,12 +12,8 @@ jQuery(function () {
 		}).render();
 
 		getNextTrack(player);
-		jQuery(this._audioTag).on('ended', function (e) {
-			
-			if (player.trackPercent() > 50) {
-				getNextTrack();
-			}
-
+		jQuery(player._audioTag).on('ended', function (e) {
+			getNextTrack(player);
 		})
 
 	})

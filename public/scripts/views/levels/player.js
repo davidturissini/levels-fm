@@ -10,6 +10,27 @@ Levels.Player = Backbone.View.extend({
 	_trackTitle: null,
 	_artistTitle: null,
 	_progress: null,
+	_controls: null,
+
+	_createAndAppendElements: function () {
+		this._trackTitle = document.createElement('h1');
+		this._artistTitle = document.createElement('h2');
+		this._progress = document.createElement('progress');
+		this._audioTag = document.createElement('audio');
+
+		this.el.appendChild(this._audioTag);
+		this.el.appendChild(this._trackTitle);
+		this.el.appendChild(this._artistTitle);
+		this.el.appendChild(this._progress);
+
+		jQuery(this._audioTag).on('timeupdate', function () {
+			this._progress.value = this._audioTag.currentTime;
+		}.bind(this));
+
+		jQuery(this._progress).on('click', function (e) {
+			console.log(e);
+		})
+	},
 
 	audioEl: function () {
 		return this._audioTag;
@@ -32,8 +53,20 @@ Levels.Player = Backbone.View.extend({
 		this._progress.value = 0;
 	},
 
+	isPlaying: function () {
+		return !this._audioTag.paused;
+	},
+
+	playPause: function () {
+		if (this.isPlaying()) {
+			this.pause();
+		} else {
+			this.play();
+		}
+	},
+
 	pause: function () {
-		this.el.pause();
+		this._audioTag.pause();
 	},
 
 	play: function () {
@@ -47,21 +80,12 @@ Levels.Player = Backbone.View.extend({
 	render: function (elem) {
 		var targetEl = elem || document.body;
 
-		this._trackTitle = document.createElement('h1');
-		this._artistTitle = document.createElement('h2');
-		this._progress = document.createElement('progress');
-		this._audioTag = document.createElement('audio');
+		this._createAndAppendElements();
+		this._controls = new Levels.Player.Controls({
+			player: this
+		}).render();
 
-		jQuery(this._audioTag).on('timeupdate', function () {
-			this._progress.value = this._audioTag.currentTime;
-		}.bind(this));
-
-		this.el.appendChild(this._audioTag);
-		this.el.appendChild(this._trackTitle);
-		this.el.appendChild(this._artistTitle);
-		this.el.appendChild(this._progress);
-
-
+		this.el.appendChild(this._controls.el);
 		targetEl.appendChild(this.el);
 
 		return this;
