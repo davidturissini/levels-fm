@@ -11,8 +11,8 @@ var Station = function (options) {
 
 		_tracks.sortByPlaybackCount();
 
-		if (_tracks.length() > 500) {
-			_tracks.trim(500);
+		if (_tracks.length() > 1000) {
+			_tracks.trim(1000);
 		}
 	}
 
@@ -20,7 +20,7 @@ var Station = function (options) {
 		var station = this, scUser;
 
 		scUser = new Soundcloud.User({
-			permalink: 'thenotrealdeadmau5'
+			permalink: 'bencoda'
 		});
 
 		scUser.connections()
@@ -30,8 +30,7 @@ var Station = function (options) {
 			
 				connections.sortByFollowers();
 
-				users = connections.users().length > 100 ? connections.users().slice(0, 100) : connections.users();
-
+				users = connections.users().length > 1000 ? connections.users().slice(0, 1000) : connections.users();
 
 				reducedCollection.addUsers(users);
 
