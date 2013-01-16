@@ -31,7 +31,7 @@ function launchServer() {
 		station.pickTrack()
 			.then(function (track) {
 				res.writeHead(200, { 'Content-Type': 'application/json' });
-				res.write(JSON.stringify(track));
+				res.write(track.toJSON());
 				res.end();
 			});
 	});

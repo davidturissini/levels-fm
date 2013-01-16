@@ -20,6 +20,7 @@ jQuery(function () {
 
 });
 
+
 function getNextTrack(player) {
 
 	jQuery.ajax({

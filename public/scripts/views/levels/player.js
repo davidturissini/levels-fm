@@ -18,6 +18,14 @@ Levels.Player = Backbone.View.extend({
 		this._progress = document.createElement('progress');
 		this._audioTag = document.createElement('audio');
 
+		this._trackLink = document.createElement('a');
+		this._trackLink.setAttribute('target', '_blank');
+		this._trackTitle.appendChild(this._trackLink);
+
+		this._artistLink = document.createElement('a');
+		this._artistLink.setAttribute('target', '_blank');
+		this._artistTitle.appendChild(this._artistLink);
+
 		this.el.appendChild(this._audioTag);
 		this.el.appendChild(this._trackTitle);
 		this.el.appendChild(this._artistTitle);
@@ -47,8 +55,12 @@ Levels.Player = Backbone.View.extend({
 
 		streamUrl = this._track.get('stream_url') + '?' + jQuery.param(this.options.config.soundcloud);
 		this._audioTag.setAttribute('src', streamUrl);
-		this._trackTitle.innerHTML = track.get('title');
-		this._artistTitle.innerHTML = track.get('user').username;
+		this._trackLink.innerHTML = track.get('title');
+		this._trackLink.setAttribute('href', track.get('permalink_url'));
+
+		this._artistLink.innerHTML = track.get('user').username;
+		this._artistLink.setAttribute('href', track.get('user').permalink_url);
+		
 		this._progress.max = track.get('duration') / 1000;
 		this._progress.value = 0;
 	},

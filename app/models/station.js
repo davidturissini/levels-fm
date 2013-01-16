@@ -1,49 +1,58 @@
 var Station = function (options) {
-	var SCUser = require('./soundcloud/user').user, Track = require('./track').Track, _tracks = [], q = require('q'), sc = require('./../../lib/soundcloud').sc;
+	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _tracks = new Soundcloud.TracksCollection(), q = require('q');
 
 	this.options = options || {};
 
 	this.addTracks = function (tracks) {
-		tracks.forEach(function (track) {
-			if (track.duration <= 600000 && track.streamable === true) {
-				_tracks.push(track);
-			}
+		_tracks.merge(tracks);
+		_tracks.reject(function (track) {
+			return track.get('duration') >= 600000 && track.get('streamable') !== true;
 		})
 
+		_tracks.sortByPlaybackCount();
+
+		if (_tracks.length() > 500) {
+			_tracks.trim(500);
+		}
 	}
 
 	this.build = function (deferred) {
 		var station = this, scUser;
 
-		scUser = new SCUser({
-			permalink: 'dave-airborne'
+		scUser = new Soundcloud.User({
+			permalink: 'thenotrealdeadmau5'
 		});
 
-		scUser.graph({
-			depth:3
+		scUser.connections()
 
-		}).then(function (followings) {
-			followings.tracks().then(function (tracks) {
-				station.addTracks(tracks);
-				deferred.resolve(station.getRandomTrack());
+			.then(function (connections) {
+				var users, reducedCollection = new Soundcloud.UsersCollection();
+			
+				connections.sortByFollowers();
+
+				users = connections.users().length > 100 ? connections.users().slice(0, 100) : connections.users();
+
+
+				reducedCollection.addUsers(users);
+
+				return reducedCollection.tracks();
 			})
 
-		});
+			.then(function (tracks) {
+				station.addTracks(tracks);
+				deferred.resolve(_tracks.random());
+			});
 
-	}
-
-	this.getRandomTrack = function () {
-		return _tracks[Math.floor(Math.random() * _tracks.length)];;
 	}
 
 	this.pickTrack = function () {
 		var deferred = q.defer();
 
-		if (_tracks.length === 0) {
+		if (_tracks.length() === 0) {
 			this.build(deferred);
 		} else {
 			setTimeout(function () {
-				deferred.resolve(this.getRandomTrack());
+				deferred.resolve(_tracks.random());
 			}.bind(this), 0);
 		}
 		
