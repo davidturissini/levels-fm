@@ -4,15 +4,18 @@ Levels.Player = Backbone.View.extend({
 
 	tagName: 'section',
 
-	_track: null,
-
 	_audioTag: null,
 	_trackTitle: null,
 	_artistTitle: null,
 	_progress: null,
 	_controls: null,
+	_timer: null,
 
 	_createAndAppendElements: function () {
+		this._timer = new Levels.Player.Timer({
+			player: this
+		}).render();
+
 		this._trackTitle = document.createElement('h1');
 		this._artistTitle = document.createElement('h2');
 		this._progress = document.createElement('progress');
@@ -30,14 +33,19 @@ Levels.Player = Backbone.View.extend({
 		this.el.appendChild(this._trackTitle);
 		this.el.appendChild(this._artistTitle);
 		this.el.appendChild(this._progress);
+		this.el.appendChild(this._timer.el);
+
 
 		jQuery(this._audioTag).on('timeupdate', function () {
 			this._progress.value = this._audioTag.currentTime;
 		}.bind(this));
 
 		jQuery(this._progress).on('click', function (e) {
-			console.log(e);
-		})
+			var percent = e.offsetX / e.currentTarget.offsetWidth;
+
+			this.audioEl().currentTime = percent * this.audioEl().duration;
+
+		}.bind(this));
 	},
 
 	audioEl: function () {
@@ -45,15 +53,15 @@ Levels.Player = Backbone.View.extend({
 	},
 
 	track: function () {
-		return this._track;
+		return this.model;
 	},
 
 	setTrack: function (track) {
 		var streamUrl;
 
-		this._track = track;
+		this.model = track;
 
-		streamUrl = this._track.get('stream_url') + '?' + jQuery.param(this.options.config.soundcloud);
+		streamUrl = this.model.get('stream_url') + '?' + jQuery.param(this.options.config.soundcloud);
 		this._audioTag.setAttribute('src', streamUrl);
 		this._trackLink.innerHTML = track.get('title');
 		this._trackLink.setAttribute('href', track.get('permalink_url'));
@@ -63,6 +71,8 @@ Levels.Player = Backbone.View.extend({
 		
 		this._progress.max = track.get('duration') / 1000;
 		this._progress.value = 0;
+
+		this._timer.setTrack(track);
 	},
 
 	isPlaying: function () {
