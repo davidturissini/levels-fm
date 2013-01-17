@@ -1,74 +1,84 @@
 var Station = function (options) {
-	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _tracks = new Soundcloud.TracksCollection(), q = require('q');
+	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _users = new Soundcloud.UsersCollection(), _tracks = new Soundcloud.TracksCollection(), q = require('q');
 
 	this.options = options || {};
 
 	this.addTracks = function (tracks) {
 		_tracks.merge(tracks);
 		_tracks.reject(function (track) {
-			return track.get('duration') >= 600000 && track.get('streamable') !== true;
+			return track.get('duration') >= 600000;
 		})
 
 		_tracks.sortByPlaybackCount();
-
-		if (_tracks.length() > 1000) {
-			_tracks.trim(1000);
-		}
+		_tracks.trim(5000);
 	}
 
-	this.build = function (deferred) {
-		var station = this, scUser;
+	this.addUser = function (user) {
+		var defer = q.defer(), station = this;
 
-		scUser = new Soundcloud.User({
-			permalink: 'bencoda'
-		});
-
-		scUser.connections()
-
-			.then(function (connections) {
-				var users, reducedCollection = new Soundcloud.UsersCollection();
-			
-				connections.sortByFollowers();
-
-				users = connections.users().length > 1000 ? connections.users().slice(0, 1000) : connections.users();
-
-				reducedCollection.addUsers(users);
-
-				return reducedCollection.tracks();
+		_users.add(user);
+		return user.tracks({
+				'filter': 'streamable',
+				'duration[from]': 120000,
+				'duration[to]': 600000
 			})
-
 			.then(function (tracks) {
 				station.addTracks(tracks);
-				deferred.resolve(_tracks.random());
-			});
 
+				return user;
+			});
+	}
+
+	this.build = function () {
+		var station = this;
+
+		return this.seedUser().connections()
+
+			.then(function (connections) {
+				var users, reducedCollection = new Soundcloud.UsersCollection(), usersLimit = 500;
+
+				connections.sortByFollowers();
+
+				users = connections.users().length > usersLimit ? connections.users().slice(0, usersLimit) : connections.users();
+				reducedCollection.addUsers(users);
+
+				reducedCollection.each(function (user) {
+					station.addUser(user);
+				})
+
+			})
+
+	}
+
+	this.seedUser = function () {
+		return new Soundcloud.User({
+			permalink: 'bencoda'
+		});
 	}
 
 	this.pickTrack = function () {
-		var deferred = q.defer();
+		var deferred = q.defer(), station = this;
 
 		if (_tracks.length() === 0) {
-			this.build(deferred);
+
+			this.addUser(this.seedUser())
+
+				.then(function () {
+					deferred.resolve(_tracks.random());
+				})
+
+				.then(function () {
+					station.build();
+				})
+
+
 		} else {
-			setTimeout(function () {
-				deferred.resolve(_tracks.random());
-			}.bind(this), 0);
+			deferred.resolve(_tracks.random());
 		}
 		
 		return deferred.promise;
 
 	}
-
-}
-
-Station.seed = function (user, sc) {
-
-	var station = new Station({
-		seed: user,
-		sc: sc
-	});
-
-	return station.build(station);
 
 }
 

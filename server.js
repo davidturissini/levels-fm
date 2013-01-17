@@ -29,6 +29,7 @@ function launchServer() {
 		user = User.find(1);
 		station = user.find_station(1);
 		station.pickTrack()
+		
 			.then(function (track) {
 				res.writeHead(200, { 'Content-Type': 'application/json' });
 				res.write(track.toJSON());
