@@ -19,6 +19,8 @@ var Station = function (options) {
 	this.addTracks = function (tracks) {
 		_tracks.merge(tracks);
 		_tracks.sortByPlaybackCount();
+
+		_tracks.trim(10000);
 	}
 
 	this.addUser = function (user) {
