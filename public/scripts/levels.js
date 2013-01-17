@@ -4,34 +4,33 @@ jQuery(function () {
 	jQuery.ajax({
 		url: "/config",
 		contentType: "json"
-	}).then(function (config) {
+	})
+
+	.then(function (config) {
 		var player;
 
 		player = new Levels.Player({
 			config:config
 		}).render();
 
-		getNextTrack(player);
-		jQuery(player._audioTag).on('ended', function (e) {
-			getNextTrack(player);
+		document.getElementById('make-station').addEventListener('click', function () {
+
+			jQuery.ajax({
+				url: '/users/1/stations',
+				type: 'post',
+				dataType: 'json',
+				data: {
+					seed: document.getElementById('station-seed').value
+				}
+			})
+
+			.then(function (stationJSON) {
+				var station = new Levels.Station(stationJSON);
+				player.setStation(station);
+			})
+
 		})
 
 	})
 
 });
-
-
-function getNextTrack(player) {
-
-	jQuery.ajax({
-		url: "/users/1/stations/1/song",
-		contentType: "json"
-	}).then(function (trackJSON) {
-		var track = new Soundcloud.Track(trackJSON);
-
-		player.setTrack(track);
-		player.play();
-
-	})
-	
-}

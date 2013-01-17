@@ -4,6 +4,8 @@ Levels.Player = Backbone.View.extend({
 
 	tagName: 'section',
 
+	_station: null,
+
 	_audioTag: null,
 	_trackTitle: null,
 	_artistTitle: null,
@@ -50,6 +52,26 @@ Levels.Player = Backbone.View.extend({
 
 	audioEl: function () {
 		return this._audioTag;
+	},
+
+	station: function () {
+		return this._station;
+	},
+
+	nextTrack: function () {
+		var player = this;
+		
+		this._station.nextTrack()
+			.then(function (track) {
+				player.setTrack(track);
+				player.play();
+			})
+	},
+
+	setStation: function (station) {
+		this._station = station;
+
+		this.nextTrack();
 	},
 
 	track: function () {

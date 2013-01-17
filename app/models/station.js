@@ -1,16 +1,24 @@
 var Station = function (options) {
-	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _users = new Soundcloud.UsersCollection(), _tracks = new Soundcloud.TracksCollection(), q = require('q');
+	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _users = new Soundcloud.UsersCollection(), _tracks = new Soundcloud.TracksCollection(), q = require('q'),
+	_seedUser = new Soundcloud.User({
+			permalink: options.seed
+		});
 
 	this.options = options || {};
 
+	this.toJSON = function () {
+		return JSON.stringify({
+			id:this.id
+		})
+	}
+
+	this.tracks = function () {
+		return _tracks;
+	}
+
 	this.addTracks = function (tracks) {
 		_tracks.merge(tracks);
-		_tracks.reject(function (track) {
-			return track.get('duration') >= 600000;
-		})
-
 		_tracks.sortByPlaybackCount();
-		_tracks.trim(5000);
 	}
 
 	this.addUser = function (user) {
@@ -32,7 +40,11 @@ var Station = function (options) {
 	this.build = function () {
 		var station = this;
 
-		return this.seedUser().connections()
+		return this.addUser(this.seedUser())
+
+			.then(function (user) {
+				return user.connections();
+			})
 
 			.then(function (connections) {
 				var users, reducedCollection = new Soundcloud.UsersCollection(), usersLimit = 500;
@@ -51,35 +63,24 @@ var Station = function (options) {
 	}
 
 	this.seedUser = function () {
-		return new Soundcloud.User({
-			permalink: 'bencoda'
-		});
+		return _seedUser;
 	}
 
 	this.pickTrack = function () {
 		var deferred = q.defer(), station = this;
-
-		if (_tracks.length() === 0) {
-
-			this.addUser(this.seedUser())
-
-				.then(function () {
-					deferred.resolve(_tracks.random());
-				})
-
-				.then(function () {
-					station.build();
-				})
-
-
-		} else {
-			deferred.resolve(_tracks.random());
-		}
-		
+		deferred.resolve(_tracks.random());
 		return deferred.promise;
 
 	}
 
+}
+
+Station.createAndSeed = function (seed) {
+	var station = new Station({seed:seed});
+	return station.addUser(station.seedUser())
+		.then(function (user) {
+			return station;
+		});
 }
 
 exports.Station = Station;

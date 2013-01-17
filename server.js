@@ -5,6 +5,7 @@ function launchServer() {
 	'use_strict';
 
 	var app = express();
+	app.use(express.bodyParser());
 
 	app.configure(function () {
 	  	app.use(express.static(__dirname + '/public'));
@@ -23,18 +24,40 @@ function launchServer() {
 
 	});
 
-	app.get('/users/1/stations/1/song', function(req, res) {
-		var user, station, track;
+	app.post('/users/1/stations', function(req, res) {
+		var user, station;
 
 		user = User.find(1);
-		station = user.find_station(1);
-		station.pickTrack()
-		
-			.then(function (track) {
-				res.writeHead(200, { 'Content-Type': 'application/json' });
-				res.write(track.toJSON());
-				res.end();
-			});
+		user.createStation(req.body.seed)
+
+		.then(function (station) {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.write(station.toJSON());
+			res.end();
+
+			station.build();
+		});
+
+	});
+
+	app.get('/users/1/stations/:id/song', function(req, res) {
+		var user, station;
+
+		user = User.find(1);
+		station = user.find_station(req.params.id);
+
+		if (station) {
+			station.pickTrack()
+			
+				.then(function (track) {
+					res.writeHead(200, { 'Content-Type': 'application/json' });
+					res.write(track.toJSON());
+					res.end();
+				});
+		} else {
+			res.writeHead(404);
+			res.end();
+		}
 	});
 
 	var port = process.env.PORT || 3000;

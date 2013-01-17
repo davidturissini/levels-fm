@@ -1,18 +1,30 @@
 var User, Station = require('./station').Station, Levels;
 
 User = (function () {
-	var station = new Station();
+	var _stations = [];
 
 	return function (options) {
 		this.options = options || {};
-		station.user = this;
 
-		this.stations = function () {
-			return [station];
+		this.createStation = function (seed) {
+			return new Station.createAndSeed(seed)
+
+				.then(function (station) {
+					station.user = this;
+
+					_stations.push(station);
+					station.id = _stations.indexOf(station);
+
+					return station;
+				})
 		}
 
-		this.find_station = function () {
-			return station;
+		this.stations = function () {
+			return _stations;
+		}
+
+		this.find_station = function (index) {
+			return _stations[index];
 		}
 
 	}
