@@ -62,18 +62,21 @@ var Station = function (options) {
 	this.build = function () {
 		var station = this;
 
-		return this.seedUser()
-				.followings()
-				.then(function (followings) {
+		if (station.seedUser().hasFollowings()) {
+			station.seedUser()
+				.followings({}, function (followings) {
 					station.addUsers(followings);
-				});
+				})
+		}
 
-				if (!this.seedUser().hasFollowings()) {
-					user.followers()
-					.then(function (followers) {
-						station.addUsers(followers);
-					});
-				}
+		if (!station.seedUser().hasFollowings()) {
+			station.seedUser()
+			.followers()
+			.then(function (followers) {
+				station.addUsers(followers);
+			});
+
+		}
 
 	}
 
