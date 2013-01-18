@@ -7,16 +7,13 @@ User = (function () {
 		this.options = options || {};
 
 		this.createStation = function (seed) {
-			return new Station.createAndSeed(seed)
+			var station = new Station({seed:seed});
+			station.user = this;
 
-				.then(function (station) {
-					station.user = this;
+			_stations.push(station);
+			station.id = _stations.indexOf(station);
 
-					_stations.push(station);
-					station.id = _stations.indexOf(station);
-
-					return station;
-				})
+			return station;
 		}
 
 		this.stations = function () {

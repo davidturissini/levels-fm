@@ -19,48 +19,61 @@ var Station = function (options) {
 	this.addTracks = function (tracks) {
 		_tracks.merge(tracks);
 		_tracks.sortByPlaybackCount();
+	}
 
-		_tracks.trim(10000);
+	this.addUsers = function (users) {
+		var station = this;
+
+		users.each(function (user) {
+			station.addUser(user);
+		})
 	}
 
 	this.addUser = function (user) {
-		var defer = q.defer(), station = this;
-
+		var station = this;
 		_users.add(user);
+
 		return user.tracks({
 				'filter': 'streamable',
-				'duration[from]': 120000,
+				'duration[from]': 180000,
 				'duration[to]': 600000
 			})
+
 			.then(function (tracks) {
 				station.addTracks(tracks);
-
 				return user;
 			});
+	}
+
+	this.seed = function () {
+		var station = this;
+
+		return this.seedUser().sync()
+
+			.then(function (user) {
+				return station.addUser(user);
+			})
+
+			.then(function () {
+				return station;
+			})
 	}
 
 	this.build = function () {
 		var station = this;
 
-		return this.addUser(this.seedUser())
+		return this.seedUser()
+				.followings()
+				.then(function (followings) {
+					station.addUsers(followings);
+				});
 
-			.then(function (user) {
-				return user.connections();
-			})
-
-			.then(function (connections) {
-				var users, reducedCollection = new Soundcloud.UsersCollection(), usersLimit = 500;
-
-				connections.sortByFollowers();
-
-				users = connections.users().length > usersLimit ? connections.users().slice(0, usersLimit) : connections.users();
-				reducedCollection.addUsers(users);
-
-				reducedCollection.each(function (user) {
-					station.addUser(user);
-				})
-
-			})
+				if (!this.seedUser().hasFollowings()) {
+					user.followers()
+					.then(function (followers) {
+						station.addUsers(followers);
+					});
+				}
 
 	}
 
@@ -69,20 +82,13 @@ var Station = function (options) {
 	}
 
 	this.pickTrack = function () {
-		var deferred = q.defer(), station = this;
-		deferred.resolve(_tracks.random());
-		return deferred.promise;
+		var deferred = q.defer(), station = this, track = _tracks.random();
 
+		deferred.resolve(track);
+
+		return deferred.promise;
 	}
 
-}
-
-Station.createAndSeed = function (seed) {
-	var station = new Station({seed:seed});
-	return station.addUser(station.seedUser())
-		.then(function (user) {
-			return station;
-		});
 }
 
 exports.Station = Station;

@@ -5,10 +5,10 @@ function launchServer() {
 	'use_strict';
 
 	var app = express();
-	app.use(express.bodyParser());
 
 	app.configure(function () {
 	  	app.use(express.static(__dirname + '/public'));
+	  	app.use(express.bodyParser());
 	});
 
 	app.get('/config', function (req, res) {
@@ -28,15 +28,16 @@ function launchServer() {
 		var user, station;
 
 		user = User.find(1);
-		user.createStation(req.body.seed)
+		station = user.createStation(req.body.seed)
 
-		.then(function (station) {
-			res.writeHead(200, { 'Content-Type': 'application/json' });
-			res.write(station.toJSON());
-			res.end();
+		station.seed()
+			.then(function () {
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.write(station.toJSON());
+				res.end();
 
-			station.build();
-		});
+				station.build();
+			});
 
 	});
 
@@ -54,6 +55,7 @@ function launchServer() {
 					res.write(track.toJSON());
 					res.end();
 				});
+
 		} else {
 			res.writeHead(404);
 			res.end();
