@@ -41,16 +41,6 @@ Levels.Player = Backbone.View.extend({
 		return this._station;
 	},
 
-	nextTrack: function () {
-		var player = this;
-		
-		this._station.nextTrack()
-			.then(function (track) {
-				player.setTrack(track);
-				player.play();
-			})
-	},
-
 	track: function () {
 		return this.model;
 	},

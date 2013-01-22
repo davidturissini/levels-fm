@@ -32,7 +32,7 @@ Levels.Player.Controls = Backbone.View.extend({
 		this._next.innerHTML = 'Next';
 
 		jQuery(this._next).on('click', function () {
-			this.options.player.nextTrack();
+			this.options.player.trigger('track:next');
 		}.bind(this));
 
 	},

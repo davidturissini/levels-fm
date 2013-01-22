@@ -29,11 +29,16 @@ var Levels = (function () {
 					.then(function (stationJSON) {
 						var station = new Levels.Station(stationJSON);
 
-						station.nextTrack()
-						.then(function (track) {
-							Levels.player().setTrack(track);
-							Levels.player().play();
-						})
+						function playNext() {
+							station.nextTrack()
+							.then(function (track) {
+								Levels.player().setTrack(track);
+								Levels.player().play();
+							})
+						}
+
+						playNext();
+						Levels.player().on('track:next', playNext);
 					})
 
 				})
