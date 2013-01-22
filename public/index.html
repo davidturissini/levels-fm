@@ -2,18 +2,27 @@
 <html>
 	<head>
 		<title>Levels.fm</title>
+		<link rel="stylesheet" type="text/css" href="/styles/base.css" />
+		<link rel="stylesheet" type="text/css" href="/styles/player.css" />
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js" type="text/javascript"></script>
-		<script src="/scripts/underscore.js"></script>
-		<script src="/scripts/backbone.js"></script>
+		<script src="/scripts/lib/underscore.js"></script>
+		<script src="/scripts/lib/backbone.js"></script>
+		<script src="/scripts/lib/levels.js"></script>
+		<script src="/scripts/models/soundcloud/artist.js"></script>
+		<script src="/scripts/models/soundcloud/artist_photo.js"></script>
 		<script src="/scripts/models/soundcloud/track.js"></script>
+		<script src="/scripts/models/soundcloud/track_photo.js"></script>
 		<script src="/scripts/models/levels/station.js"></script>
 		<script src="/scripts/views/levels/player.js"></script>
+		<script src="/scripts/views/levels/player_progress.js"></script>
 		<script src="/scripts/views/levels/player_controls.js"></script>
 		<script src="/scripts/views/levels/player_timer.js"></script>
 		<script src="/scripts/levels.js"></script>
 	</head>
 	<body>
-		<input type="text" id="station-seed" />
-		<input type="button" id="make-station" />
+		<div id="container">
+			<input type="text" id="station-seed" />
+			<input type="button" id="make-station" />
+		</div>
 	</body>
 </html>

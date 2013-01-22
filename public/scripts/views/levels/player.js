@@ -3,24 +3,21 @@ var Levels = Levels || {};
 Levels.Player = Backbone.View.extend({
 
 	tagName: 'section',
-
-	_station: null,
+	className: 'player',
 
 	_audioTag: null,
 	_trackTitle: null,
 	_artistTitle: null,
-	_progress: null,
 	_controls: null,
 	_timer: null,
 
-	_createAndAppendElements: function () {
+	_drawElements: function () {
 		this._timer = new Levels.Player.Timer({
 			player: this
 		}).render();
 
 		this._trackTitle = document.createElement('h1');
 		this._artistTitle = document.createElement('h2');
-		this._progress = document.createElement('progress');
 		this._audioTag = document.createElement('audio');
 
 		this._trackLink = document.createElement('a');
@@ -31,23 +28,9 @@ Levels.Player = Backbone.View.extend({
 		this._artistLink.setAttribute('target', '_blank');
 		this._artistTitle.appendChild(this._artistLink);
 
-		this.el.appendChild(this._audioTag);
-		this.el.appendChild(this._trackTitle);
-		this.el.appendChild(this._artistTitle);
-		this.el.appendChild(this._progress);
-		this.el.appendChild(this._timer.el);
+		this._artistImage = document.createElement('img');
+		this._artistImage.className = 'artist-image';
 
-
-		jQuery(this._audioTag).on('timeupdate', function () {
-			this._progress.value = this._audioTag.currentTime;
-		}.bind(this));
-
-		jQuery(this._progress).on('click', function (e) {
-			var percent = e.offsetX / e.currentTarget.offsetWidth;
-
-			this.audioEl().currentTime = percent * this.audioEl().duration;
-
-		}.bind(this));
 	},
 
 	audioEl: function () {
@@ -68,12 +51,6 @@ Levels.Player = Backbone.View.extend({
 			})
 	},
 
-	setStation: function (station) {
-		this._station = station;
-
-		this.nextTrack();
-	},
-
 	track: function () {
 		return this.model;
 	},
@@ -88,12 +65,12 @@ Levels.Player = Backbone.View.extend({
 		this._trackLink.innerHTML = track.get('title');
 		this._trackLink.setAttribute('href', track.get('permalink_url'));
 
-		this._artistLink.innerHTML = track.get('user').username;
-		this._artistLink.setAttribute('href', track.get('user').permalink_url);
-		
-		this._progress.max = track.get('duration') / 1000;
-		this._progress.value = 0;
+		this._artistLink.innerHTML = track.get('user').get('username');
+		this._artistLink.setAttribute('href', track.get('user').get('permalink_url'));
 
+		this._artistImage.setAttribute('src', track.get('user').photo().get('url'));
+		
+		this._progress.setTrack(track);
 		this._timer.setTrack(track);
 	},
 
@@ -123,13 +100,27 @@ Levels.Player = Backbone.View.extend({
 
 	render: function (elem) {
 		var targetEl = elem || document.body;
-
-		this._createAndAppendElements();
+		this._drawElements();
+		
 		this._controls = new Levels.Player.Controls({
 			player: this
 		}).render();
 
+		this._progress = new Levels.Player.Progress({
+			player: this
+		}).render();
+
+		this.el.appendChild(this._audioTag);
+		
+		this.el.appendChild(this._artistImage);
+		this.el.appendChild(this._trackTitle);
+		this.el.appendChild(this._artistTitle);
+
+		this.el.appendChild(this._progress.el);
 		this.el.appendChild(this._controls.el);
+
+		this.el.appendChild(this._timer.el);
+
 		targetEl.appendChild(this.el);
 
 		return this;

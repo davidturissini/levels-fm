@@ -3,7 +3,7 @@ var Levels = Levels || {};
 Levels.Player.Controls = Backbone.View.extend({
 
 	tagName: 'section',
-	className: 'controls',
+	className: 'player-controls',
 
 	_stop: null,
 	_playPause: null,
