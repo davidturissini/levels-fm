@@ -11,6 +11,8 @@ Levels.Player.Control.Next = Levels.Player.Control.extend({
 		jQuery(this.el).on('click', function () {
 			this.options.player.trigger('track:next');
 		}.bind(this));
+
+		return this;
 	}
 
 })

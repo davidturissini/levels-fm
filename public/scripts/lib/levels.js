@@ -39,6 +39,7 @@ var Levels = (function () {
 
 						playNext();
 						Levels.player().on('track:next', playNext);
+						Levels.player().on('track:ended', playNext);
 					})
 
 				})

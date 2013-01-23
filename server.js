@@ -28,7 +28,7 @@ function launchServer() {
 		var user, station;
 
 		user = User.find(1);
-		station = user.createStation(req.body.seed)
+		station = user.createStation(req.body.seed);
 
 		station.seed()
 			.then(function () {

@@ -1,6 +1,7 @@
+var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _users = new Soundcloud.UsersCollection(), _tracks = new Soundcloud.TracksCollection(), q = require('q');
+
 var Station = function (options) {
-	var Soundcloud = require('./../../lib/soundcloud').Soundcloud, Track = require('./track').Track, _users = new Soundcloud.UsersCollection(), _tracks = new Soundcloud.TracksCollection(), q = require('q'),
-	_seedUser = new Soundcloud.User({
+	this._seedUser = new Soundcloud.User({
 			permalink: options.seed
 		});
 
@@ -47,7 +48,6 @@ var Station = function (options) {
 
 	this.seed = function () {
 		var station = this;
-
 		return this.seedUser().sync()
 
 			.then(function (user) {
@@ -81,7 +81,7 @@ var Station = function (options) {
 	}
 
 	this.seedUser = function () {
-		return _seedUser;
+		return this._seedUser;
 	}
 
 	this.pickTrack = function () {

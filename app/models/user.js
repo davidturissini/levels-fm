@@ -21,6 +21,7 @@ User = (function () {
 		}
 
 		this.find_station = function (index) {
+			console.log(_stations[index].id);
 			return _stations[index];
 		}
 
