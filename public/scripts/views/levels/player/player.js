@@ -12,10 +12,6 @@ Levels.Player = Backbone.View.extend({
 	_timer: null,
 
 	_drawElements: function () {
-		this._timer = new Levels.Player.Timer({
-			player: this
-		}).render();
-
 		this._trackTitle = document.createElement('h1');
 		this._artistTitle = document.createElement('h2');
 		this._audioTag = document.createElement('audio');
@@ -30,6 +26,22 @@ Levels.Player = Backbone.View.extend({
 
 		this._artistImage = document.createElement('img');
 		this._artistImage.className = 'artist-image';
+
+		this._playPause = new Levels.Player.Control.PlayPause({
+			player:this
+		}).render();
+
+		this._timer = new Levels.Player.Control.Timer({
+			player: this
+		}).render();
+
+		this._volumeControl = new Levels.Player.Control.Volume({
+			player:this
+		}).render();
+
+		this._stop = new Levels.Player.Control.Stop({
+			player:this
+		}).render();
 
 	},
 
@@ -76,6 +88,10 @@ Levels.Player = Backbone.View.extend({
 		}
 	},
 
+	setVolume: function (volume) {
+		this.audioEl().volume = volume;
+	},
+
 	pause: function () {
 		this._audioTag.pause();
 	},
@@ -91,12 +107,8 @@ Levels.Player = Backbone.View.extend({
 	render: function (elem) {
 		var targetEl = elem || document.body;
 		this._drawElements();
-		
-		this._controls = new Levels.Player.Controls({
-			player: this
-		}).render();
 
-		this._progress = new Levels.Player.Progress({
+		this._progress = new Levels.Player.Control.Progress({
 			player: this
 		}).render();
 
@@ -107,7 +119,9 @@ Levels.Player = Backbone.View.extend({
 		this.el.appendChild(this._artistTitle);
 
 		this.el.appendChild(this._progress.el);
-		this.el.appendChild(this._controls.el);
+		this.el.appendChild(this._playPause.el);
+		this.el.appendChild(this._stop.el);
+		this.el.appendChild(this._volumeControl.el);
 
 		this.el.appendChild(this._timer.el);
 

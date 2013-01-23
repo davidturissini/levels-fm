@@ -1,6 +1,6 @@
 var Levels = Levels || {};
 
-Levels.Player.Timer = Backbone.View.extend({
+Levels.Player.Control.Timer = Backbone.View.extend({
 
 	tagName: 'div',
 
@@ -12,8 +12,8 @@ Levels.Player.Timer = Backbone.View.extend({
 	},
 
 	setTrack: function (track) {
+		Levels.Player.Control.prototype.setTrack.apply(this, [track]);
 		var player = this.options.player;
-		this.model = track;
 
 		this._totalTime.innerHTML = this._millisecondsToTime(this.model.get('duration'));
 		this._currentTime.innerHTML = this._millisecondsToTime(0);

@@ -1,7 +1,7 @@
 var Levels = Levels || {};
 Levels.Player = Levels.Player || {};
 
-Levels.Player.Progress = Backbone.View.extend({
+Levels.Player.Control.Progress = Levels.Player.Control.extend({
 
 	tagName: 'div',
 	className: 'player-progress',
@@ -17,7 +17,7 @@ Levels.Player.Progress = Backbone.View.extend({
 	},
 
 	setTrack: function (track) {
-		this.model = track;
+		Levels.Player.Control.prototype.setTrack.apply(this, [track]);
 
 		this._waveform.setAttribute('src', track.get('waveform_url'));
 	},

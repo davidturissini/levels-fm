@@ -7,3 +7,5 @@
 .player .player-progress { position:relative; clear:both; margin-top:40px; background:rgba(0, 0, 0, .5); }
 .player .player-progress .player-waveform { display:block; width:100%; }
 .player .player-progress .player-progress-bar { position:absolute; top:0; left:0; bottom:0; background:rgba(0, 0, 0, .3); }
+
+.player .player-volume { -webkit-appearance:slider-vertical; }
