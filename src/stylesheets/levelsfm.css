@@ -1,0 +1,16 @@
+.progress {
+	position:relative;
+}
+
+.progress .waveform {
+	width:100%;
+}
+
+.progress .overlay {
+	position:absolute;
+	left:0;
+	top:0;
+	bottom:0;
+	z-index:10;
+	background:rgba(0, 0, 0, 0.5);
+}

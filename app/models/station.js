@@ -48,6 +48,7 @@ var Station = function (options) {
 
 	this.seed = function () {
 		var station = this;
+		console.log('seeding station')
 		return this.seedUser().sync()
 
 			.then(function (user) {
