@@ -32,7 +32,7 @@ Time.prototype = {
 
 		transparency.render(this._element, {
 			currentTime:this._player.currentTime,
-			duration:this._player.track.duration
+			duration:this._player.track._attributes.duration
 		}, {
 
 			'currenttime':{

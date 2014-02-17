@@ -9,6 +9,7 @@ var SkipButton = require('./ui/SkipButton');
 var TrackMeta = require('./ui/TrackMeta');
 var Station = require('./model/Station');
 var User = require('./model/User');
+var VoteUpButton = require('./ui/VoteUpButton');
 
 
 var jquery = require('jquery');
@@ -36,23 +37,45 @@ stateless
 				username:'dave'
 			});
 
+
 			var player = new Player(document.querySelector('.audio'), soundcloudClientId);
 			var playPauseButton = new PlayPauseButton(document.getElementById('playPause'), player);
 			var progress = new Progress(document.getElementById('progress'), player);
 			var time = new Time(document.getElementById('time'), player);
 			var trackMeta = new TrackMeta(document.getElementById('trackmeta'), player);
 			var skipButton = new SkipButton(document.getElementById('skip'), player);
+			var voteUpButton = new VoteUpButton(document.getElementById('voteup'), player);
 
+
+			function playNext(player, station) {
+				return station.tracks().next()
+					.then(function (track) {
+						player.once('canplay', player.play.bind(player));
+						player.track = track;
+					})
+			}
+
+
+			
 			user.stations().fetch().then(function (stations) {
+				var stationsEl = document.getElementById('stations');
+				stations.forEach(function (station) {
+					var el = document.createElement('h1');
+					el.innerHTML = station._attributes.title;
+					stationsEl.appendChild(el);
+				});
+
 
 				var station = stations[0];
 				skipButton.station = station;
-				return station.tracks().next();
-			})
+				voteUpButton.station = station;
 
-			.then(function (track) {
-				player.once('canplay', player.play.bind(player));
-				player.track = track;
+
+				player.on('ended', function () {
+					playNext(player, station);
+				});
+
+				return playNext(player, station);
 			});
 
 		}

@@ -13,6 +13,7 @@ function Player(element, clientId) {
 	this._element.addEventListener('timeupdate', this.emit.bind(this, 'timeupdate'));
 	this._element.addEventListener('canplaythrough', this.emit.bind(this, 'canplaythrough'));
 	this._element.addEventListener('canplay', this.emit.bind(this, 'canplay'));
+	this._element.addEventListener('ended', this.emit.bind(this, 'ended'));
 
 };
 
@@ -44,7 +45,7 @@ Object.defineProperties(Player.prototype, {
 			var oldTrack = this._track;
 			this._track = track;
 
-			this._element.src = this._track.stream_url + '?client_id=' + this._clientId;
+			this._element.src = this._track._attributes.stream_url + '?client_id=' + this._clientId;
 			this.emit('trackchange', {
 				previous:oldTrack,
 				track:track

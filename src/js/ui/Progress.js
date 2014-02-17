@@ -9,7 +9,9 @@ function Progress (element, player) {
 
 	this._element.addEventListener('click', this._onClick.bind(this));
 
-	this._drawUI(this._player.track);
+	if (this._player.track) {
+		this._drawUI(this._player.track);
+	}
 
 	this._player.on('trackchange', this._onTrackChange.bind(this));
 
@@ -18,7 +20,8 @@ function Progress (element, player) {
 Progress.prototype = {
 
 	_drawUI: function (track) {
-		transparency.render(this._element, track, {
+
+		transparency.render(this._element, track._attributes, {
 			'waveform':{
 				'src':function () {
 					return this.waveform_url;
