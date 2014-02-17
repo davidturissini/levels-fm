@@ -5,7 +5,12 @@ var Player = require('./ui/Player');
 var PlayPauseButton = require('./ui/PlayPauseButton');
 var Progress = require('./ui/Progress');
 var Time = require('./ui/TrackTime');
+var SkipButton = require('./ui/SkipButton');
 var TrackMeta = require('./ui/TrackMeta');
+var Station = require('./model/Station');
+var User = require('./model/User');
+
+
 var jquery = require('jquery');
 
 var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
@@ -27,17 +32,29 @@ stateless
 		},
 
 		onLoad: function () {
+			var user = new User({
+				username:'dave'
+			});
+
 			var player = new Player(document.querySelector('.audio'), soundcloudClientId);
 			var playPauseButton = new PlayPauseButton(document.getElementById('playPause'), player);
 			var progress = new Progress(document.getElementById('progress'), player);
 			var time = new Time(document.getElementById('time'), player);
 			var trackMeta = new TrackMeta(document.getElementById('trackmeta'), player);
+			var skipButton = new SkipButton(document.getElementById('skip'), player);
 
-			pigeon.get('http://localhost:3000/users/dave/stations/530136c593dfb00000000001/tracks/next')
-				.then(function (e) {
-					player.once('canplay', player.play.bind(player));
-					player.track = JSON.parse(e);
-				});
+			user.stations().fetch().then(function (stations) {
+
+				var station = stations[0];
+				skipButton.station = station;
+				return station.tracks().next();
+			})
+
+			.then(function (track) {
+				player.once('canplay', player.play.bind(player));
+				player.track = track;
+			});
+
 		}
 	}])
 	.activate();
