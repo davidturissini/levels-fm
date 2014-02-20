@@ -1,5 +1,7 @@
 .progress {
 	position:relative;
+	margin:0 auto;
+	width:500px;
 }
 
 .progress .waveform {
@@ -10,7 +12,10 @@
 	position:absolute;
 	left:0;
 	top:0;
+	right:0;
 	bottom:0;
 	z-index:10;
 	background:rgba(0, 0, 0, 0.5);
+	-webkit-transform-origin:0 0;
+	-webkit-transition:-webkit-transform 200ms ease;
 }

@@ -1,16 +1,16 @@
 var pigeon = require('pigeon');
 var Station = require('./Station');
+var backbone = require('backbone');
 
-function User (attributes) {
-	this._attributes = attributes;
-	this._stations = [];
-}
+var User = backbone.Model.extend({
 
-User.prototype = {
+	initialize: function () {
+		this._stations = [];
+	},
 
 	stations:function () {
 		var user = this;
-		var username = this._attributes.username;
+		var username = this.get('username');
 
 		return {
 			fetch:function () {
@@ -35,7 +35,7 @@ User.prototype = {
 
 	}
 
-};
+});
 
 
 module.exports = User;

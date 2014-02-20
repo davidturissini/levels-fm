@@ -10,8 +10,6 @@ SkipButton.prototype = {
 	_onClick: function (evt) {
 		this._station.tracks().next()
 			.then(function (track) {
-				
-
 				this._player.once('canplay', this._player.play.bind(this._player));
 				this._player.track = track;
 

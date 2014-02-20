@@ -33,6 +33,7 @@ stateless
 		},
 
 		onLoad: function () {
+			var currentStation;
 			var user = new User({
 				username:'dave'
 			});
@@ -45,6 +46,18 @@ stateless
 			var trackMeta = new TrackMeta(document.getElementById('trackmeta'), player);
 			var skipButton = new SkipButton(document.getElementById('skip'), player);
 			var voteUpButton = new VoteUpButton(document.getElementById('voteup'), player);
+
+			var stationCreateButton = document.getElementById('stationcreate');
+
+
+			stationCreateButton.addEventListener('click', function () {
+				var permalink = document.getElementById('stationcreateartist').value;
+				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink)
+					.then(function (e) {
+						console.log(e);
+					});
+
+			});
 
 
 			function playNext(player, station) {
@@ -63,19 +76,27 @@ stateless
 					var el = document.createElement('h1');
 					el.innerHTML = station._attributes.title;
 					stationsEl.appendChild(el);
+
+					el.addEventListener('click', function () {
+						skipButton.station = station;
+						voteUpButton.station = station;
+						playNext(player, station);
+						currentStation = station;
+					});
+
 				});
 
 
-				var station = stations[0];
-				skipButton.station = station;
-				voteUpButton.station = station;
+				currentStation = stations[0];
+				skipButton.station = currentStation;
+				voteUpButton.station = currentStation;
 
 
 				player.on('ended', function () {
-					playNext(player, station);
+					playNext(player, currentStation);
 				});
 
-				return playNext(player, station);
+				return playNext(player, currentStation);
 			});
 
 		}

@@ -45,7 +45,7 @@ Object.defineProperties(Player.prototype, {
 			var oldTrack = this._track;
 			this._track = track;
 
-			this._element.src = this._track._attributes.stream_url + '?client_id=' + this._clientId;
+			this._element.src = this._track.get('stream_url') + '?client_id=' + this._clientId;
 			this.emit('trackchange', {
 				previous:oldTrack,
 				track:track

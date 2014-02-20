@@ -1,13 +1,9 @@
 var pigeon = require('pigeon');
+var backbone = require('backbone');
 
-function Track (attributes) {
-	this._attributes = attributes;
-}
-
-
-Track.prototype = {
-
-};
+var Track = backbone.Model.extend({
+	idAttribute:'_id'
+});
 
 
 module.exports = Track

@@ -13,7 +13,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('http://localhost:3000/users/' + user._attributes.username + '/stations/' + stationId + '/destroy')
+		return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/destroy')
 			.then(function (e) {
 				return JSON.parse(e);
 			});
@@ -26,7 +26,7 @@ Station.prototype = {
 		return {
 
 			next: function () {
-				return pigeon.get('http://localhost:3000/users/' + user._attributes.username + '/stations/' + stationId + '/tracks/next')
+				return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/tracks/next')
 					.then(function (e) {
 						return new Track(JSON.parse(e));
 					});
@@ -40,7 +40,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('http://localhost:3000/users/' + user._attributes.username + '/stations/' + stationId + '/tracks/up/' + track._attributes._id)
+		return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id)
 			.then(function (e) {
 				return JSON.parse(e);
 			});
