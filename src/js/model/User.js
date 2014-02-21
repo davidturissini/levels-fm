@@ -1,4 +1,4 @@
-var pigeon = require('pigeon');
+var levelsfm = require('./../services/levelsfm');
 var Station = require('./Station');
 var backbone = require('backbone');
 
@@ -15,13 +15,12 @@ var User = backbone.Model.extend({
 		return {
 			fetch:function () {
 
-				return pigeon.get('http://localhost:3000/users/' + username + '/stations')
+				return levelsfm.get('/users/' + username + '/stations')
 					.then(function (stationsData) {
 						var stations = [];
 
 
-						JSON.parse(stationsData).forEach(function (stationData) {
-
+						stationsData.forEach(function (stationData) {
 							var station = new Station(user, stationData);
 							stations.push(station);
 						});

@@ -1,5 +1,5 @@
-var pigeon = require('pigeon');
 var Track = require('./Track');
+var levelsfm = require('./../services/levelsfm');
 
 function Station (user, attributes) {
 	this._user = user;
@@ -13,10 +13,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.del('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId)
-			.then(function (e) {
-				return JSON.parse(e);
-			});
+		return levelsfm.del('/users/' + user.get('username') + '/stations/' + stationId);
 	},
 
 	tracks: function () {
@@ -26,9 +23,9 @@ Station.prototype = {
 		return {
 
 			next: function () {
-				return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/tracks/next')
+				return levelsfm.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/next')
 					.then(function (e) {
-						return new Track(JSON.parse(e));
+						return new Track(e);
 					});
 			}
 
@@ -40,10 +37,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id)
-			.then(function (e) {
-				return JSON.parse(e);
-			});
+		return pigeon.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id);
 	}
 
 };
