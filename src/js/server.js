@@ -10,6 +10,7 @@ var TrackMeta = require('./ui/TrackMeta');
 var Station = require('./model/Station');
 var User = require('./model/User');
 var VoteUpButton = require('./ui/VoteUpButton');
+var levelsfm = require('./services/levelsfm');
 
 
 var jquery = require('jquery');
@@ -52,7 +53,7 @@ stateless
 
 			stationCreateButton.addEventListener('click', function () {
 				var permalink = document.getElementById('stationcreateartist').value;
-				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink);
+				levelsfm.post('/users/dave/stations/' + permalink);
 			});
 
 
