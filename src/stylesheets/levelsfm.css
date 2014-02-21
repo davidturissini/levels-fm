@@ -1,8 +1,65 @@
-.progress {
-	position:relative;
-	margin:0 auto;
-	width:500px;
+/*
+	orange: rgba(246, 142, 31, 1);;
+	blue: rgba(47, 103, 178, 1);
+*/
+
+.player {
+	padding:0;
+	vertical-align:middle;
+	border-bottom:2px solid #ccc;
+	background:#000;
 }
+
+.player button {
+	display:inline-block;
+	height:50px;
+	width:50px;
+	border-radius:25px;
+	border:0;
+	outline:0;
+	white-space:nowrap;
+	cursor:pointer;
+}
+
+.player a {
+	color:#fff;
+	text-decoration:none;
+}
+
+.player a:hover {
+	text-decoration:underline;
+}
+
+.trackmeta {
+	position:relative;
+	z-index:10;
+	padding:10px;
+	background:rgba(0, 0, 0, 0.4);
+	color:#fff;
+	font-size:1.2em;
+}
+
+.tracklink {
+	font-weight:bold;
+}
+
+.avatar {
+	float:left;
+	margin-right:10px;
+	margin-top:-25px;
+	margin-left:20px;
+	outline:1px solid #000;
+}
+
+
+.progress {
+	background:rgba(47, 103, 178, 1);
+	display:inline-block;
+	position:relative;
+	margin:0;
+	vertical-align:middle;
+}
+
 
 .progress .waveform {
 	width:100%;
@@ -16,6 +73,13 @@
 	bottom:0;
 	z-index:10;
 	background:rgba(0, 0, 0, 0.5);
+	-webkit-transform:scaleX(0);
 	-webkit-transform-origin:0 0;
 	-webkit-transition:-webkit-transform 200ms ease;
+}
+
+
+.buttons {
+	margin-bottom:20px;
+	text-align:center;
 }

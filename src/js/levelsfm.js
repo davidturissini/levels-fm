@@ -1,5 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-//     Backbone.js 1.1.1
+//     Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Backbone may be freely distributed under the MIT license.
@@ -18,9 +18,8 @@
 
   // Next for Node.js or CommonJS. jQuery may not be needed as a module.
   } else if (typeof exports !== 'undefined') {
-    var _ = require('underscore'), $;
-    try { $ = require('jquery'); } catch(e) {}
-    factory(root, exports, _, $);
+    var _ = require('underscore');
+    factory(root, exports, _);
 
   // Finally, as a browser global.
   } else {
@@ -43,7 +42,7 @@
   var splice = array.splice;
 
   // Current version of the library. Keep in sync with `package.json`.
-  Backbone.VERSION = '1.1.1';
+  Backbone.VERSION = '1.1.2';
 
   // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
   // the `$` variable.
@@ -1294,7 +1293,7 @@
                      return optional ? match : '([^/?]+)';
                    })
                    .replace(splatParam, '([^?]*?)');
-      return new RegExp('^' + route + '(?:\\?(.*))?$');
+      return new RegExp('^' + route + '(?:\\?([\\s\\S]*))?$');
     },
 
     // Given a route, and a URL fragment that it matches, return the array of
@@ -1451,7 +1450,7 @@
     // but possibly useful for unit testing Routers.
     stop: function() {
       Backbone.$(window).off('popstate', this.checkUrl).off('hashchange', this.checkUrl);
-      clearInterval(this._checkUrlInterval);
+      if (this._checkUrlInterval) clearInterval(this._checkUrlInterval);
       History.started = false;
     },
 
@@ -1609,7 +1608,7 @@
 
 }));
 
-},{"jquery":2,"underscore":81}],2:[function(require,module,exports){
+},{"underscore":81}],2:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.0
  * http://jquery.com/
@@ -15383,7 +15382,8 @@ var resourceFetch = require('./resource/fetch');
 
 module.exports = {
 	get:resourceFetch.fetch,
-	post:resourceFetch.post
+	post:resourceFetch.post,
+	del:resourceFetch.del
 }
 },{"./resource/fetch":20}],19:[function(require,module,exports){
 var ajax = require('component-ajax');
@@ -15410,6 +15410,23 @@ exports.post = function (path, params) {
 
 	ajax({
 		type:'post',
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
+}
+
+
+exports.del = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		type:'delete',
 		url:path,
 		dataType:'text',
 		data:params || {},
@@ -17202,9 +17219,47 @@ module.exports=require(16)
 },{}],38:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
 },{"./lib/cookies":28,"./lib/copy":29,"./lib/debug":30,"./lib/getSafe":31,"./lib/optional":32,"__browserify_Buffer":107,"__browserify_process":108,"crypto":95,"forever-agent":33,"http":101,"json-stringify-safe":34,"mime":35,"node-uuid":36,"qs":37,"querystring":116,"stream":118,"url":125,"util":127}],39:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
+var resourceFetch = require('./resource/fetch');
+
+module.exports = {
+	get:resourceFetch.fetch,
+	post:resourceFetch.post
+}
 },{"./resource/fetch":41}],40:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
+var ajax = require('component-ajax');
+var Q = require('q');
+
+exports.fetch = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
+
+}
+
+exports.post = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		type:'post',
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
+}
 },{"component-ajax":25,"q":45}],41:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
 },{"./browser/browserfetch":40,"./server/fetch":42,"__browserify_process":108}],42:[function(require,module,exports){
@@ -17251,7 +17306,7 @@ var soundcloud = {
 
 				promises.push(promise);
 			}(offset));
-
+			
 			if (offset < max && limit + offset > max && max === 8000) {
 				offset = max;
 			} else {
@@ -17260,7 +17315,7 @@ var soundcloud = {
 
 		}
 
-		return q.all(promises)
+		return q.allSettled(promises)
 			.then(function () {
 				return data;
 			})
@@ -19011,9 +19066,9 @@ module.exports=require(16)
 },{}],62:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
 },{"./lib/cookies":52,"./lib/copy":53,"./lib/debug":54,"./lib/getSafe":55,"./lib/optional":56,"__browserify_Buffer":107,"__browserify_process":108,"crypto":95,"forever-agent":57,"http":101,"json-stringify-safe":58,"mime":59,"node-uuid":60,"qs":61,"querystring":116,"stream":118,"url":125,"util":127}],63:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
+arguments[4][39][0].apply(exports,arguments)
 },{"./resource/fetch":65}],64:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
+arguments[4][40][0].apply(exports,arguments)
 },{"component-ajax":48,"q":50}],65:[function(require,module,exports){
 arguments[4][20][0].apply(exports,arguments)
 },{"./browser/browserfetch":64,"./server/fetch":66,"__browserify_process":108}],66:[function(require,module,exports){
@@ -23590,7 +23645,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/destroy')
+		return pigeon.del('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId)
 			.then(function (e) {
 				return JSON.parse(e);
 			});
@@ -23734,11 +23789,7 @@ stateless
 
 			stationCreateButton.addEventListener('click', function () {
 				var permalink = document.getElementById('stationcreateartist').value;
-				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink)
-					.then(function (e) {
-						console.log(e);
-					});
-
+				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink);
 			});
 
 
@@ -23755,15 +23806,27 @@ stateless
 			user.stations().fetch().then(function (stations) {
 				var stationsEl = document.getElementById('stations');
 				stations.forEach(function (station) {
-					var el = document.createElement('h1');
-					el.innerHTML = station._attributes.title;
-					stationsEl.appendChild(el);
+					var title = document.createElement('h1');
+					title.innerHTML = station._attributes.title;
+					stationsEl.appendChild(title);
 
-					el.addEventListener('click', function () {
+					title.addEventListener('click', function () {
 						skipButton.station = station;
 						voteUpButton.station = station;
 						playNext(player, station);
 						currentStation = station;
+					});
+
+					var del = document.createElement('span');
+					del.innerHTML = 'delete';
+					stationsEl.appendChild(del);
+
+					del.addEventListener('click', function () {
+						station.destroy()
+							.then(function () {
+								stationsEl.removeChild(title);
+								stationsEl.removeChild(del);
+							});
 					});
 
 				});

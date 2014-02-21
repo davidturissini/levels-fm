@@ -52,11 +52,7 @@ stateless
 
 			stationCreateButton.addEventListener('click', function () {
 				var permalink = document.getElementById('stationcreateartist').value;
-				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink)
-					.then(function (e) {
-						console.log(e);
-					});
-
+				pigeon.post('http://localhost:3000/users/dave/stations/' + permalink);
 			});
 
 
@@ -73,15 +69,27 @@ stateless
 			user.stations().fetch().then(function (stations) {
 				var stationsEl = document.getElementById('stations');
 				stations.forEach(function (station) {
-					var el = document.createElement('h1');
-					el.innerHTML = station._attributes.title;
-					stationsEl.appendChild(el);
+					var title = document.createElement('h1');
+					title.innerHTML = station._attributes.title;
+					stationsEl.appendChild(title);
 
-					el.addEventListener('click', function () {
+					title.addEventListener('click', function () {
 						skipButton.station = station;
 						voteUpButton.station = station;
 						playNext(player, station);
 						currentStation = station;
+					});
+
+					var del = document.createElement('span');
+					del.innerHTML = 'delete';
+					stationsEl.appendChild(del);
+
+					del.addEventListener('click', function () {
+						station.destroy()
+							.then(function () {
+								stationsEl.removeChild(title);
+								stationsEl.removeChild(del);
+							});
 					});
 
 				});

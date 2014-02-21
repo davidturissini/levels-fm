@@ -13,7 +13,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId + '/destroy')
+		return pigeon.del('http://localhost:3000/users/' + user.get('username') + '/stations/' + stationId)
 			.then(function (e) {
 				return JSON.parse(e);
 			});
