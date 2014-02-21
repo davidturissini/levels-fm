@@ -23669,7 +23669,7 @@ Station.prototype = {
 		var user = this._user;
 		var stationId = this._attributes._id;
 
-		return pigeon.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id);
+		return levelsfm.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id);
 	}
 
 };
