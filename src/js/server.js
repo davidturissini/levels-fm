@@ -10,6 +10,7 @@ var TrackMeta = require('./ui/TrackMeta');
 var Station = require('./model/Station');
 var User = require('./model/User');
 var VoteUpButton = require('./ui/VoteUpButton');
+var VoteDownButton = require('./ui/VoteDownButton');
 var levelsfm = require('./services/levelsfm');
 
 
@@ -19,7 +20,7 @@ var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
 
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
-	.setPort(process.env.PORT || 5000)
+	.setPort(5000)//process.env.PORT || 5000)
 	.setServerRoot(staticDir)
 	.setLayoutsDirectory('/html/layouts')
 	.setDefaultLayoutFile('main.html')
@@ -47,6 +48,7 @@ stateless
 			var trackMeta = new TrackMeta(document.getElementById('trackmeta'), player);
 			var skipButton = new SkipButton(document.getElementById('skip'), player);
 			var voteUpButton = new VoteUpButton(document.getElementById('voteup'), player);
+			var voteDownButton = new VoteDownButton(document.getElementById('votedown'), player);
 
 			var stationCreateButton = document.getElementById('stationcreate');
 
@@ -71,12 +73,13 @@ stateless
 				var stationsEl = document.getElementById('stations');
 				stations.forEach(function (station) {
 					var title = document.createElement('h1');
-					title.innerHTML = station._attributes.title;
+					title.innerHTML = station.get('title');
 					stationsEl.appendChild(title);
 
 					title.addEventListener('click', function () {
 						skipButton.station = station;
 						voteUpButton.station = station;
+						voteDownButton.station = currentStation;
 						playNext(player, station);
 						currentStation = station;
 					});
@@ -99,6 +102,7 @@ stateless
 				currentStation = stations[0];
 				skipButton.station = currentStation;
 				voteUpButton.station = currentStation;
+				voteDownButton.station = currentStation;
 
 
 				player.on('ended', function () {

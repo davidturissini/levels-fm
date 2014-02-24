@@ -21,7 +21,7 @@ var User = backbone.Model.extend({
 
 
 						stationsData.forEach(function (stationData) {
-							var station = new Station(user, stationData);
+							var station = new Station(stationData);
 							stations.push(station);
 						});
 

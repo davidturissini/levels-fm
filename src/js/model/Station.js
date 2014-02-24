@@ -1,29 +1,21 @@
 var Track = require('./Track');
 var levelsfm = require('./../services/levelsfm');
+var backbone = require('backbone');
 
-function Station (user, attributes) {
-	this._user = user;
-	this._attributes = attributes;
-}
-
-
-Station.prototype = {
+var Station = backbone.Model.extend({
+	idAttribute:'_id',
 
 	destroy: function () {
-		var user = this._user;
-		var stationId = this._attributes._id;
-
-		return levelsfm.del('/users/' + user.get('username') + '/stations/' + stationId);
+		return levelsfm.del('/stations/' + this.id);
 	},
 
 	tracks: function () {
-		var user = this._user;
-		var stationId = this._attributes._id;
+		var stationId = this.id;
 
 		return {
 
 			next: function () {
-				return levelsfm.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/next')
+				return levelsfm.get('/stations/' + stationId + '/tracks/next')
 					.then(function (e) {
 						return new Track(e);
 					});
@@ -34,13 +26,15 @@ Station.prototype = {
 	},
 
 	voteUp: function (track) {
-		var user = this._user;
-		var stationId = this._attributes._id;
+		return levelsfm.get('/stations/' + this.id + '/tracks/up/' + track.id);
+	},
 
-		return levelsfm.get('/users/' + user.get('username') + '/stations/' + stationId + '/tracks/up/' + track.id);
+
+	voteDown: function (track) {
+		return levelsfm.del('/stations/' + this.id + '/tracks/' + track.id);
 	}
 
-};
+});
 
 
 module.exports = Station;
