@@ -20,7 +20,7 @@ var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
 
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
-	.setPort(5000)//process.env.PORT || 5000)
+	.setPort(process.env.PORT || 5000)
 	.setServerRoot(staticDir)
 	.setLayoutsDirectory('/html/layouts')
 	.setDefaultLayoutFile('main.html')
