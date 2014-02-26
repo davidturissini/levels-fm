@@ -55,7 +55,11 @@ stateless
 
 			stationCreateButton.addEventListener('click', function () {
 				var permalink = document.getElementById('stationcreateartist').value;
-				levelsfm.post('/users/dave/stations/' + permalink);
+				Station.create(user, permalink)
+					.then(function (station) {
+						appendStationUI(station);
+						loadStation(station);
+					});
 			});
 
 
@@ -68,48 +72,54 @@ stateless
 			}
 
 
-			
-			user.stations().fetch().then(function (stations) {
-				var stationsEl = document.getElementById('stations');
-				stations.forEach(function (station) {
-					var title = document.createElement('h1');
-					title.innerHTML = station.get('title');
-					stationsEl.appendChild(title);
+			function loadStation (station) {
+				currentStation = station;
+				skipButton.station = station;
+				voteUpButton.station = station;
+				voteDownButton.station = station;
+				return playNext(player, station);
+			}
 
-					title.addEventListener('click', function () {
-						skipButton.station = station;
-						voteUpButton.station = station;
-						voteDownButton.station = currentStation;
-						playNext(player, station);
-						currentStation = station;
-					});
+			var stationsEl = document.getElementById('stations');
+			function appendStationUI (station) {
+				var title = document.createElement('h1');
+				title.innerHTML = station.get('title');
+				stationsEl.appendChild(title);
 
-					var del = document.createElement('span');
-					del.innerHTML = 'delete';
-					stationsEl.appendChild(del);
-
-					del.addEventListener('click', function () {
-						station.destroy()
-							.then(function () {
-								stationsEl.removeChild(title);
-								stationsEl.removeChild(del);
-							});
-					});
-
+				title.addEventListener('click', function () {
+					loadStation(station);
 				});
 
+				var del = document.createElement('span');
+				del.innerHTML = 'delete';
+				stationsEl.appendChild(del);
 
-				currentStation = stations[0];
-				skipButton.station = currentStation;
-				voteUpButton.station = currentStation;
-				voteDownButton.station = currentStation;
+				del.addEventListener('click', function () {
+					station.destroy()
+						.then(function () {
+							stationsEl.removeChild(title);
+							stationsEl.removeChild(del);
+						});
+				});
+			}
+
+
+			
+			user.stations().fetch().then(function (stations) {
+				
+				stations.forEach(appendStationUI);
+
+
+				
+				
 
 
 				player.on('ended', function () {
 					playNext(player, currentStation);
 				});
 
-				return playNext(player, currentStation);
+				return loadStation(stations[0]);
+
 			});
 
 		}

@@ -36,5 +36,12 @@ var Station = backbone.Model.extend({
 
 });
 
+Station.create = function (user, artistPermalink) {
+	return levelsfm.post('/users/' + user.get('username') + '/stations/' + artistPermalink)
+		.then(function (stationData) {
+			return new Station(stationData);
+		});
+}
+
 
 module.exports = Station;

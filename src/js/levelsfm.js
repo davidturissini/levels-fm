@@ -23668,6 +23668,13 @@ var Station = backbone.Model.extend({
 
 });
 
+Station.create = function (user, artistPermalink) {
+	return levelsfm.post('/users/' + user.get('username') + '/stations/' + artistPermalink)
+		.then(function (stationData) {
+			return new Station(stationData);
+		});
+}
+
 
 module.exports = Station;
 },{"./../services/levelsfm":86,"./Track":83,"backbone":1}],83:[function(require,module,exports){
@@ -23779,7 +23786,11 @@ stateless
 
 			stationCreateButton.addEventListener('click', function () {
 				var permalink = document.getElementById('stationcreateartist').value;
-				levelsfm.post('/users/dave/stations/' + permalink);
+				Station.create(user, permalink)
+					.then(function (station) {
+						appendStationUI(station);
+						loadStation(station);
+					});
 			});
 
 
@@ -23792,48 +23803,54 @@ stateless
 			}
 
 
-			
-			user.stations().fetch().then(function (stations) {
-				var stationsEl = document.getElementById('stations');
-				stations.forEach(function (station) {
-					var title = document.createElement('h1');
-					title.innerHTML = station.get('title');
-					stationsEl.appendChild(title);
+			function loadStation (station) {
+				currentStation = station;
+				skipButton.station = station;
+				voteUpButton.station = station;
+				voteDownButton.station = station;
+				return playNext(player, station);
+			}
 
-					title.addEventListener('click', function () {
-						skipButton.station = station;
-						voteUpButton.station = station;
-						voteDownButton.station = currentStation;
-						playNext(player, station);
-						currentStation = station;
-					});
+			var stationsEl = document.getElementById('stations');
+			function appendStationUI (station) {
+				var title = document.createElement('h1');
+				title.innerHTML = station.get('title');
+				stationsEl.appendChild(title);
 
-					var del = document.createElement('span');
-					del.innerHTML = 'delete';
-					stationsEl.appendChild(del);
-
-					del.addEventListener('click', function () {
-						station.destroy()
-							.then(function () {
-								stationsEl.removeChild(title);
-								stationsEl.removeChild(del);
-							});
-					});
-
+				title.addEventListener('click', function () {
+					loadStation(station);
 				});
 
+				var del = document.createElement('span');
+				del.innerHTML = 'delete';
+				stationsEl.appendChild(del);
 
-				currentStation = stations[0];
-				skipButton.station = currentStation;
-				voteUpButton.station = currentStation;
-				voteDownButton.station = currentStation;
+				del.addEventListener('click', function () {
+					station.destroy()
+						.then(function () {
+							stationsEl.removeChild(title);
+							stationsEl.removeChild(del);
+						});
+				});
+			}
+
+
+			
+			user.stations().fetch().then(function (stations) {
+				
+				stations.forEach(appendStationUI);
+
+
+				
+				
 
 
 				player.on('ended', function () {
 					playNext(player, currentStation);
 				});
 
-				return playNext(player, currentStation);
+				return loadStation(stations[0]);
+
 			});
 
 		}
@@ -23841,7 +23858,7 @@ stateless
 	.activate();
 },{"./model/Station":82,"./model/User":84,"./services/levelsfm":86,"./ui/PlayPauseButton":87,"./ui/Player":88,"./ui/Progress":89,"./ui/SkipButton":90,"./ui/TrackMeta":91,"./ui/TrackTime":92,"./ui/VoteDownButton":93,"./ui/VoteUpButton":94,"__browserify_process":110,"jquery":2,"pigeon":18,"q":24,"stateless":71}],86:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = 'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000';// 'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -24202,8 +24219,13 @@ function VoteUpButton (element, player) {
 VoteUpButton.prototype = {
 
 	_onClick:function (evt) {
-		console.log(this._player.track);
+		this._player.pause();
 		this._station.voteDown(this._player.track);
+		this._station.tracks().next()
+			.then(function (track) {
+				this._player.track = track;
+				this._player.play();
+			}.bind(this));
 	}
 
 };

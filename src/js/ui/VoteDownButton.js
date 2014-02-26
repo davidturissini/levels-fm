@@ -8,8 +8,13 @@ function VoteUpButton (element, player) {
 VoteUpButton.prototype = {
 
 	_onClick:function (evt) {
-		console.log(this._player.track);
+		this._player.pause();
 		this._station.voteDown(this._player.track);
+		this._station.tracks().next()
+			.then(function (track) {
+				this._player.track = track;
+				this._player.play();
+			}.bind(this));
 	}
 
 };
