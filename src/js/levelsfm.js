@@ -23858,7 +23858,7 @@ stateless
 	.activate();
 },{"./model/Station":82,"./model/User":84,"./services/levelsfm":86,"./ui/PlayPauseButton":87,"./ui/Player":88,"./ui/Progress":89,"./ui/SkipButton":90,"./ui/TrackMeta":91,"./ui/TrackTime":92,"./ui/VoteDownButton":93,"./ui/VoteUpButton":94,"__browserify_process":110,"jquery":2,"pigeon":18,"q":24,"stateless":71}],86:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = 'http://localhost:3000';// 'http://levelsfm-backend.herokuapp.com';
+var domain = /*'http://localhost:3000';*/ 'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
