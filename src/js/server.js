@@ -12,11 +12,14 @@ var User = require('./model/User');
 var VoteUpButton = require('./ui/VoteUpButton');
 var VoteDownButton = require('./ui/VoteDownButton');
 var levelsfm = require('./services/levelsfm');
-
-
+var soundcloud = require('soundcloud').soundcloud;
 var jquery = require('jquery');
 
 var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
+
+soundcloud.configure({
+	client_id:soundcloudClientId
+})
 
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
@@ -108,10 +111,6 @@ stateless
 			user.stations().fetch().then(function (stations) {
 				
 				stations.forEach(appendStationUI);
-
-
-				
-				
 
 
 				player.on('ended', function () {

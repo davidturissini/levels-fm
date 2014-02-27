@@ -23633,6 +23633,7 @@ if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
 var Track = require('./Track');
 var levelsfm = require('./../services/levelsfm');
 var backbone = require('backbone');
+var soundcloud = require('soundcloud').soundcloud;
 
 var Station = backbone.Model.extend({
 	idAttribute:'_id',
@@ -23648,9 +23649,13 @@ var Station = backbone.Model.extend({
 
 			next: function () {
 				return levelsfm.get('/stations/' + stationId + '/tracks/next')
+					.then(function (trackReference) {
+						return soundcloud.api('/tracks/' + trackReference.id);
+					})
+
 					.then(function (e) {
 						return new Track(e);
-					});
+					})
 			}
 
 		}
@@ -23677,7 +23682,7 @@ Station.create = function (user, artistPermalink) {
 
 
 module.exports = Station;
-},{"./../services/levelsfm":86,"./Track":83,"backbone":1}],83:[function(require,module,exports){
+},{"./../services/levelsfm":86,"./Track":83,"backbone":1,"soundcloud":46}],83:[function(require,module,exports){
 var pigeon = require('pigeon');
 var backbone = require('backbone');
 
@@ -23743,11 +23748,14 @@ var User = require('./model/User');
 var VoteUpButton = require('./ui/VoteUpButton');
 var VoteDownButton = require('./ui/VoteDownButton');
 var levelsfm = require('./services/levelsfm');
-
-
+var soundcloud = require('soundcloud').soundcloud;
 var jquery = require('jquery');
 
 var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
+
+soundcloud.configure({
+	client_id:soundcloudClientId
+})
 
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
@@ -23841,10 +23849,6 @@ stateless
 				stations.forEach(appendStationUI);
 
 
-				
-				
-
-
 				player.on('ended', function () {
 					playNext(player, currentStation);
 				});
@@ -23856,7 +23860,7 @@ stateless
 		}
 	}])
 	.activate();
-},{"./model/Station":82,"./model/User":84,"./services/levelsfm":86,"./ui/PlayPauseButton":87,"./ui/Player":88,"./ui/Progress":89,"./ui/SkipButton":90,"./ui/TrackMeta":91,"./ui/TrackTime":92,"./ui/VoteDownButton":93,"./ui/VoteUpButton":94,"__browserify_process":110,"jquery":2,"pigeon":18,"q":24,"stateless":71}],86:[function(require,module,exports){
+},{"./model/Station":82,"./model/User":84,"./services/levelsfm":86,"./ui/PlayPauseButton":87,"./ui/Player":88,"./ui/Progress":89,"./ui/SkipButton":90,"./ui/TrackMeta":91,"./ui/TrackTime":92,"./ui/VoteDownButton":93,"./ui/VoteUpButton":94,"__browserify_process":110,"jquery":2,"pigeon":18,"q":24,"soundcloud":46,"stateless":71}],86:[function(require,module,exports){
 var pigeon = require('pigeon');
 var domain = /*'http://localhost:3000';*/ 'http://levelsfm-backend.herokuapp.com';
 

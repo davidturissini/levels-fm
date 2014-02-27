@@ -1,6 +1,7 @@
 var Track = require('./Track');
 var levelsfm = require('./../services/levelsfm');
 var backbone = require('backbone');
+var soundcloud = require('soundcloud').soundcloud;
 
 var Station = backbone.Model.extend({
 	idAttribute:'_id',
@@ -16,9 +17,13 @@ var Station = backbone.Model.extend({
 
 			next: function () {
 				return levelsfm.get('/stations/' + stationId + '/tracks/next')
+					.then(function (trackReference) {
+						return soundcloud.api('/tracks/' + trackReference.id);
+					})
+
 					.then(function (e) {
 						return new Track(e);
-					});
+					})
 			}
 
 		}
