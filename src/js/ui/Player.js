@@ -1,12 +1,11 @@
-var soundcloud = require('soundcloud').soundcloud;
+var soundcloud = require('./../services/soundcloud');
 var transparency = require('transparency');
 var jquery = require('jquery');
 var events = require('events');
 
-function Player(element, clientId) {
+function Player(element) {
 	this._track = null;
 	this._element = element;
-	this._clientId = clientId;
 
 	this._element.addEventListener('play', this.emit.bind(this, 'play'));
 	this._element.addEventListener('pause', this.emit.bind(this, 'pause'));
@@ -45,11 +44,13 @@ Object.defineProperties(Player.prototype, {
 			var oldTrack = this._track;
 			this._track = track;
 
-			this._element.src = this._track.get('stream_url') + '?client_id=' + this._clientId;
+			this._element.src = soundcloud.buildStreamUrl(this._track);
 			this.emit('trackchange', {
 				previous:oldTrack,
 				track:track
 			});
+
+			this.play();
 
 		},
 		get:function () {

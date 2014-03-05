@@ -5,9 +5,8 @@ var soundcloud = require('soundcloud').soundcloud;
 
 var Station = backbone.Model.extend({
 	idAttribute:'_id',
-
-	destroy: function () {
-		return levelsfm.del('/stations/' + this.id);
+	url:function () {
+		return levelsfm.domain + '/stations/' + this.id;
 	},
 
 	tracks: function () {

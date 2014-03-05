@@ -1,5 +1,5 @@
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000';*/ 'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -11,6 +11,8 @@ var fetch = exports.get = function (path, params, method) {
 }
 
 exports.get = fetch;
+
+exports.domain = domain;
 
 exports.del = function (path, params) {
 	return fetch(path, params, 'del');

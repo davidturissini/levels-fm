@@ -1,6 +1,6 @@
-function VoteUpButton (element, player) {
+function VoteUpButton (element, tuner) {
 	this._element = element;
-	this._player = player;
+	this._tuner = tuner;
 
 	this._element.addEventListener('click', this._onClick.bind(this));
 }
@@ -8,24 +8,9 @@ function VoteUpButton (element, player) {
 VoteUpButton.prototype = {
 
 	_onClick:function (evt) {
-		this._station.voteUp(this._player.track);
+		this._tuner.station.voteUp(this._tuner.currentTrack);
 	}
 
 };
-
-
-Object.defineProperties(VoteUpButton.prototype, {
-
-	station:{
-		get:function () {
-			return this._station;
-		},
-		set:function (station) {
-			this._station = station;
-		}
-	}
-
-});
-
 
 module.exports = VoteUpButton;

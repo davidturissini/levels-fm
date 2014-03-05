@@ -83,3 +83,34 @@
 	margin-bottom:20px;
 	text-align:center;
 }
+
+.stations-list {
+	padding:20px 30px;
+	clear:both;
+}
+
+.station {
+	cursor:pointer;
+}
+
+.station-title {
+	display:inline-block;
+	padding:5px;
+	margin-right:10px;
+}
+
+.station-title:hover {
+	background:#ccc;
+}
+
+.station-delete {
+	font-size:0.8em;
+}
+
+.station-form {
+	padding:20px 30px;
+}
+
+.station-form input[type=text] {
+	width:300px;
+}
