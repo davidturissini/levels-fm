@@ -22267,7 +22267,8 @@ var resourceFetch = require('./resource/fetch');
 
 module.exports = {
 	get:resourceFetch.fetch,
-	post:resourceFetch.post
+	post:resourceFetch.post,
+	del:resourceFetch.del
 }
 },{"./resource/fetch":54}],53:[function(require,module,exports){
 var ajax = require('component-ajax');
@@ -22287,6 +22288,22 @@ exports.fetch = function (path, params) {
 
 	return defer.promise;
 
+}
+
+exports.del = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		type:'delete',
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
 }
 
 exports.post = function (path, params) {
@@ -24107,9 +24124,47 @@ module.exports=require(50)
 },{}],72:[function(require,module,exports){
 arguments[4][51][0].apply(exports,arguments)
 },{"./lib/cookies":62,"./lib/copy":63,"./lib/debug":64,"./lib/getSafe":65,"./lib/optional":66,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":67,"http":13,"json-stringify-safe":68,"mime":69,"node-uuid":70,"qs":71,"querystring":24,"stream":26,"url":33,"util":35}],73:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
+var resourceFetch = require('./resource/fetch');
+
+module.exports = {
+	get:resourceFetch.fetch,
+	post:resourceFetch.post
+}
 },{"./resource/fetch":75}],74:[function(require,module,exports){
-arguments[4][53][0].apply(exports,arguments)
+var ajax = require('component-ajax');
+var Q = require('q');
+
+exports.fetch = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
+
+}
+
+exports.post = function (path, params) {
+	var defer = Q.defer();
+
+	ajax({
+		type:'post',
+		url:path,
+		dataType:'text',
+		data:params || {},
+		success: function (e) {
+			defer.resolve(e);
+		}
+	});
+
+	return defer.promise;
+}
 },{"component-ajax":59,"q":79}],75:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
 },{"./browser/browserfetch":74,"./server/fetch":76,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],76:[function(require,module,exports){
@@ -25929,9 +25984,9 @@ module.exports=require(50)
 },{}],96:[function(require,module,exports){
 arguments[4][51][0].apply(exports,arguments)
 },{"./lib/cookies":86,"./lib/copy":87,"./lib/debug":88,"./lib/getSafe":89,"./lib/optional":90,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":91,"http":13,"json-stringify-safe":92,"mime":93,"node-uuid":94,"qs":95,"querystring":24,"stream":26,"url":33,"util":35}],97:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
+arguments[4][73][0].apply(exports,arguments)
 },{"./resource/fetch":99}],98:[function(require,module,exports){
-arguments[4][53][0].apply(exports,arguments)
+arguments[4][74][0].apply(exports,arguments)
 },{"component-ajax":82,"q":84}],99:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
 },{"./browser/browserfetch":98,"./server/fetch":100,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],100:[function(require,module,exports){
@@ -30562,20 +30617,22 @@ module.exports = Station;
 var pigeon = require('pigeon');
 var backbone = require('backbone');
 
-var Track = backbone.Model.extend({
-	idAttribute:'_id'
-});
+var Track = backbone.Model.extend();
 
 
 module.exports = Track
 },{"backbone":1,"pigeon":52}],119:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var backbone = require('backbone');
+var q = require('q');
 
 var Tuner = function (player) {
 	this._player = player;
 	this._stations = null;
 	this._station = null;
+	this._trackQueue = [];
+
+	this._player.on('ended', this.playNext.bind(this));
 };
 
 
@@ -30585,8 +30642,35 @@ Tuner.prototype.pausePlayer = function () {
 	this._player.pause();
 }
 
+Tuner.prototype.__clearQueue = function () {
+	this._trackQueue = [];
+}
+
+Tuner.prototype.__queueNext = function () {
+	var currentStation = this.station;
+	return this.station.tracks().next()
+		.then(function (track) {
+			if (this.station === currentStation) {
+				this._trackQueue.push(track);
+				this._player.preFetch(track);
+			}
+		}.bind(this));
+}
+
 Tuner.prototype.getNext = function () {
-	return this.station.tracks().next();
+	var defer;
+	var promise;
+
+	if (this._trackQueue.length > 0) {
+		defer = q.defer();
+		defer.resolve(this._trackQueue.shift());
+
+		promise = defer.promise;
+	} else {
+		promise = this.station.tracks().next();
+	}
+
+	return promise;
 }
 
 
@@ -30594,7 +30678,10 @@ Tuner.prototype.playNext = function () {
 	var player = this._player;
 	this.getNext().then(function (track) {
 		player.track = track;
-	});
+		this.__queueNext();
+	}.bind(this));
+
+	
 }
 
 
@@ -30617,6 +30704,7 @@ Object.defineProperties(Tuner.prototype, {
 			return this._station;
 		},
 		set: function (station) {
+			this.__clearQueue();
 			this._station = station;
 			this.playNext();
 		}
@@ -30632,6 +30720,7 @@ Object.defineProperties(Tuner.prototype, {
 				this._stations.off();
 			}
 
+			this.__clearQueue();
 			this._stations = stations;
 
 
@@ -30657,7 +30746,7 @@ Object.defineProperties(Tuner.prototype, {
 
 
 module.exports = Tuner;
-},{"backbone":1,"events":12}],120:[function(require,module,exports){
+},{"backbone":1,"events":12,"q":58}],120:[function(require,module,exports){
 var levelsfm = require('./../services/levelsfm');
 var Stations = require('./../collection/Stations');
 var backbone = require('backbone');
@@ -30764,9 +30853,9 @@ stateless
 	}])
 	.activate();
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
-},{"./model/Station":117,"./model/Tuner":119,"./model/User":120,"./ui/Player":125,"./ui/StationForm":128,"./ui/TunerFaceplate":131,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":36,"q":58,"stateless":105}],122:[function(require,module,exports){
+},{"./model/Station":117,"./model/Tuner":119,"./model/User":120,"./ui/Player":125,"./ui/StationForm":128,"./ui/TunerFaceplate":132,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":36,"q":58,"stateless":105}],122:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -30846,6 +30935,8 @@ var events = require('events');
 function Player(element) {
 	this._track = null;
 	this._element = element;
+	this._prefetchEl = document.createElement('audio');
+	document.body.appendChild(this._prefetchEl);
 
 	this._element.addEventListener('play', this.emit.bind(this, 'play'));
 	this._element.addEventListener('pause', this.emit.bind(this, 'pause'));
@@ -30858,21 +30949,21 @@ function Player(element) {
 
 Player.prototype = new events.EventEmitter();
 
-
 Player.prototype.addEventListener = function () {
 	return this.on.apply(this, arguments);
 };
-
 
 Player.prototype.removeEventListener = function () {
 	return this.off.apply(this, arguments);
 };
 
+Player.prototype.preFetch = function (track) {
+	this._prefetchEl.src = soundcloud.buildStreamUrl(track);
+};
 
 Player.prototype.play = function () {
 	this._element.play();
 };
-
 
 Player.prototype.pause = function () {
 	this._element.pause();
@@ -30884,13 +30975,15 @@ Object.defineProperties(Player.prototype, {
 			var oldTrack = this._track;
 			this._track = track;
 
-			this._element.src = soundcloud.buildStreamUrl(this._track);
+			
 			this.emit('trackchange', {
 				previous:oldTrack,
 				track:track
 			});
 
-			this.play();
+			jquery(this._element).one('canplay', this.play.bind(this));
+			this._element.src = soundcloud.buildStreamUrl(this._track);
+			
 
 		},
 		get:function () {
@@ -31033,6 +31126,56 @@ Object.defineProperties(StationForm.prototype, {
 
 module.exports = StationForm;
 },{"./../model/Station":117,"events":12}],129:[function(require,module,exports){
+var jquery = require('jquery');
+
+function StationList (element, tuner) {
+	this._element = element;
+	this._tuner = tuner;
+
+	this._tuner.on('stations:changed', this._onStationsChange.bind(this));
+	this._tuner.on('stations:add', this._onStationsAdd.bind(this));
+	this._tuner.on('stations:remove', this._onStationsRemove.bind(this));
+
+}
+
+StationList.prototype = {
+
+	_appendStationUI: function (station) {
+		var stationEl = document.createElement('div');
+		stationEl.classList.add('station');
+		var title = document.createElement('h1');
+		title.innerHTML = station.get('title');
+		title.classList.add('station-title');
+		title.setAttribute('data-station_id', station.id);
+		stationEl.appendChild(title);
+
+
+		var del = document.createElement('span');
+		del.classList.add('station-delete');
+		del.setAttribute('data-station_id', station.id);
+		del.innerHTML = 'delete';
+		stationEl.appendChild(del);
+		this._element.appendChild(stationEl);
+	},
+
+	_onStationsRemove: function (station) {
+		var stationDeleteEl = this._element.querySelector('[data-station_id="' + station.id + '"]');
+		stationDeleteEl.parentNode.parentNode.removeChild(stationDeleteEl.parentNode);
+	},
+
+	_onStationsAdd: function (station) {
+		this._appendStationUI(station);
+	},
+
+	_onStationsChange: function (stations) {
+		jquery(this._element).empty();
+		stations.each(this._appendStationUI, this);
+	}
+
+};
+
+module.exports = StationList;
+},{"jquery":36}],130:[function(require,module,exports){
 var transparency = require('transparency');
 var soundcloud = require('soundcloud').soundcloud;
 
@@ -31084,7 +31227,7 @@ TrackMeta.prototype = {
 };
 
 module.exports = TrackMeta;
-},{"soundcloud":80,"transparency":107}],130:[function(require,module,exports){
+},{"soundcloud":80,"transparency":107}],131:[function(require,module,exports){
 var transparency = require('transparency');
 
 function Time (element, player) {
@@ -31156,7 +31299,7 @@ Time.prototype = {
 };
 
 module.exports = Time;
-},{"transparency":107}],131:[function(require,module,exports){
+},{"transparency":107}],132:[function(require,module,exports){
 var PlayPauseButton = require('./PlayPauseButton');
 var Progress = require('./Progress');
 var Time = require('./TrackTime');
@@ -31164,6 +31307,7 @@ var SkipButton = require('./SkipButton');
 var TrackMeta = require('./TrackMeta');
 var VoteUpButton = require('./VoteUpButton');
 var VoteDownButton = require('./VoteDownButton');
+var StationList = require('./StationList');
 
 function TunerFaceplate (tuner, options) {
 	options = options || {};
@@ -31177,57 +31321,20 @@ function TunerFaceplate (tuner, options) {
 	var trackMeta = options.trackMeta || new TrackMeta(document.getElementById('trackmeta'), this._tuner.player);
 	var skipButton = options.skipButton || new SkipButton(document.getElementById('skip'), this._tuner);
 	var voteUpButton = options.voteUpButton || new VoteUpButton(document.getElementById('voteup'), this._tuner);
-	var voteDownButton = options.voteDownButton || new VoteDownButton(document.getElementById('votedown'), this._tuner.player);
-
-
-	this._tuner.on('stations:changed', this._onStationsChange.bind(this));
-	this._tuner.on('stations:add', this._onStationsAdd.bind(this));
-	this._tuner.on('stations:remove', this._onStationsRemove.bind(this));
+	var voteDownButton = options.voteDownButton || new VoteDownButton(document.getElementById('votedown'), this._tuner);
+	var stationList = options.stationList || new StationList(document.getElementById('stations'), this._tuner);
 
 }
 
 
 TunerFaceplate.prototype = {
 
-	_appendStationUI: function (station) {
-		var stationsEl = document.getElementById('stations');
-		var stationEl = document.createElement('div');
-		stationEl.classList.add('station');
-		var title = document.createElement('h1');
-		title.innerHTML = station.get('title');
-		title.classList.add('station-title');
-		title.setAttribute('data-station_id', station.id);
-		stationEl.appendChild(title);
-
-
-		var del = document.createElement('span');
-		del.classList.add('station-delete');
-		del.setAttribute('data-station_id', station.id);
-		del.innerHTML = 'delete';
-		stationEl.appendChild(del);
-		stationsEl.appendChild(stationEl);
-
-	},
-
-	_onStationsRemove: function (station) {
-		var stationsEl = document.getElementById('stations');
-		var stationDeleteEl = stationsEl.querySelector('[data-station_id="' + station.id + '"]');
-		stationDeleteEl.parentNode.parentNode.removeChild(stationDeleteEl.parentNode);
-	},
-
-	_onStationsAdd: function (station) {
-		this._appendStationUI(station);
-	},
-
-	_onStationsChange: function (stations) {
-		document.getElementById('stations').innerHTML = '';
-		stations.each(this._appendStationUI, this);
-	}
+	
 
 };
 
 module.exports = TunerFaceplate;
-},{"./PlayPauseButton":124,"./Progress":126,"./SkipButton":127,"./TrackMeta":129,"./TrackTime":130,"./VoteDownButton":132,"./VoteUpButton":133}],132:[function(require,module,exports){
+},{"./PlayPauseButton":124,"./Progress":126,"./SkipButton":127,"./StationList":129,"./TrackMeta":130,"./TrackTime":131,"./VoteDownButton":133,"./VoteUpButton":134}],133:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -31247,7 +31354,7 @@ VoteUpButton.prototype = {
 
 
 module.exports = VoteUpButton;
-},{}],133:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;

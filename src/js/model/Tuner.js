@@ -1,10 +1,14 @@
 var EventEmitter = require('events').EventEmitter;
 var backbone = require('backbone');
+var q = require('q');
 
 var Tuner = function (player) {
 	this._player = player;
 	this._stations = null;
 	this._station = null;
+	this._trackQueue = [];
+
+	this._player.on('ended', this.playNext.bind(this));
 };
 
 
@@ -14,8 +18,35 @@ Tuner.prototype.pausePlayer = function () {
 	this._player.pause();
 }
 
+Tuner.prototype.__clearQueue = function () {
+	this._trackQueue = [];
+}
+
+Tuner.prototype.__queueNext = function () {
+	var currentStation = this.station;
+	return this.station.tracks().next()
+		.then(function (track) {
+			if (this.station === currentStation) {
+				this._trackQueue.push(track);
+				this._player.preFetch(track);
+			}
+		}.bind(this));
+}
+
 Tuner.prototype.getNext = function () {
-	return this.station.tracks().next();
+	var defer;
+	var promise;
+
+	if (this._trackQueue.length > 0) {
+		defer = q.defer();
+		defer.resolve(this._trackQueue.shift());
+
+		promise = defer.promise;
+	} else {
+		promise = this.station.tracks().next();
+	}
+
+	return promise;
 }
 
 
@@ -23,7 +54,10 @@ Tuner.prototype.playNext = function () {
 	var player = this._player;
 	this.getNext().then(function (track) {
 		player.track = track;
-	});
+		this.__queueNext();
+	}.bind(this));
+
+	
 }
 
 
@@ -46,6 +80,7 @@ Object.defineProperties(Tuner.prototype, {
 			return this._station;
 		},
 		set: function (station) {
+			this.__clearQueue();
 			this._station = station;
 			this.playNext();
 		}
@@ -61,6 +96,7 @@ Object.defineProperties(Tuner.prototype, {
 				this._stations.off();
 			}
 
+			this.__clearQueue();
 			this._stations = stations;
 
 
