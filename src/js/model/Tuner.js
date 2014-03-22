@@ -54,7 +54,12 @@ Tuner.prototype.playNext = function () {
 	var player = this._player;
 	this.getNext().then(function (track) {
 		player.track = track;
-		this.__queueNext();
+
+		if (this.station.get('status') === 'imported') {
+			this.__queueNext();
+		} else if (this.station.get('status') === 'importing') {
+			this.station.fetch();
+		}
 	}.bind(this));
 
 	

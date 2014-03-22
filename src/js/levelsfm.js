@@ -30678,7 +30678,12 @@ Tuner.prototype.playNext = function () {
 	var player = this._player;
 	this.getNext().then(function (track) {
 		player.track = track;
-		this.__queueNext();
+
+		if (this.station.get('status') === 'imported') {
+			this.__queueNext();
+		} else if (this.station.get('status') === 'importing') {
+			this.station.fetch();
+		}
 	}.bind(this));
 
 	
@@ -30855,7 +30860,7 @@ stateless
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
 },{"./model/Station":117,"./model/Tuner":119,"./model/User":120,"./ui/Player":125,"./ui/StationForm":128,"./ui/TunerFaceplate":132,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":36,"q":58,"stateless":105}],122:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
