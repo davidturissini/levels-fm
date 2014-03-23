@@ -2,14 +2,33 @@ var stateless = require('stateless');
 var Q = require('q');
 var Station = require('./model/Station');
 var User = require('./model/User');
-var StationForm = require('./ui/StationForm');
-var Tuner = require('./model/Tuner');
-var TunerFaceplate = require('./ui/TunerFaceplate');
-var Player = require('./ui/Player');
 var jquery = require('jquery');
 var backbone = require('backbone');
+var LoginView = require('./views/user/Login');
+var RadioView = require('./views/user/Radio');
+
+window.jquery = jquery;
 backbone.ajax = function () {
 	return jquery.ajax.apply(jquery, arguments);
+}
+backbone.$ = jquery;
+
+
+
+function showRadioView (user) {
+	var body = jquery(document.getElementById('content'));
+	window.user = user;
+	var radioView = new RadioView(user);
+
+	radioView.render()
+		.then(function () {
+			body.empty();
+			body.append(radioView.el);
+		})
+
+		.fail(function (err) {
+			console.error(err.stack);
+		});
 }
 
 
@@ -30,46 +49,51 @@ stateless
 		},
 
 		onLoad: function () {
-			var user = new User({
-				username:'dave'
-			});
-			
-			var player = new Player(document.querySelector('.audio'));
-			var tuner = new Tuner(player);
-			var faceplate = new TunerFaceplate(tuner);
-			var stationForm = new StationForm(document.getElementById('stationcreateartist'), document.getElementById('stationcreate'));
-			stationForm.user = user;
+			var user = User.current();
+			var view;
+			var content;
+			var body = jquery(document.getElementById('content'));
+			body.empty();
 
+			if (user.isAnonymous()) {
+				view = new LoginView();
+				
 
-			stationForm.on('station_create', function (evt) {
-				tuner.stations.add(evt.station);
-			});
+				view.render()
+					.then(function (e) {
+						body.append(view.el);
+					})
 
-			jquery(document).on('click', '.station-title', function (evt) {
-				var station = user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
-				tuner.station = station;
-			});
+					.fail(function (err) {
+						console.error(err.stack);
+					});
 
+				view.on('user:login', function (evt) {
+					showRadioView(evt.user);
+				});
 
-			jquery(document).on('click', '.station-delete', function (evt) {
-				var station = user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
-				station.destroy();
-			});
-
-
-			user.stations.fetch().then(function (stations) {
-				var station;
-
-				tuner.stations = user.stations;
-
-				station = user.stations.at(0);
-
-				if (station) {
-					tuner.station = station;
-				}
-			});
+			} else {
+				showRadioView(user);
+			}
 
 
 		}
+	},{
+		path:'/users/:username',
+
+		template:staticDir + '/html/home/index.html',
+
+		action:function (document, routeData) {
+			var defer = Q.defer();
+			defer.resolve();
+			return defer.promise;
+		},
+
+		onLoad: function () {
+			console.log('yay!');
+		}
+
 	}])
 	.activate();
+
+window.User = User;

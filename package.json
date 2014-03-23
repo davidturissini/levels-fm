@@ -3,6 +3,10 @@
   "description": "SoundCloud radio",
   "version": "0.0.1",
   "private": true,
+  "main":"src/js/server",
+  "devDependencies": {
+    "grunt-newer":"0.7.0"
+  },
   "dependencies": {
     "grunt":"~0.4.2",
     "grunt-contrib-watch":"0.5.3",
@@ -15,7 +19,8 @@
     "tls":"x.x.x",
     "transparency": "0.9.14",
     "jquery":"x.x.x",
-    "backbone":"x.x.x"
+    "backbone":"x.x.x",
+    "jakobmattsson-client-cookies":"0.1.5"
   },
   "engines": {
     "node": "0.10.25",
