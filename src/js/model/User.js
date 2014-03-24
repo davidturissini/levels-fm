@@ -82,6 +82,18 @@ User.current = function () {
 	return currentUser;
 };
 
+User.register = function (username, password, confirm) {
+	return levelsfm.post('/users', {
+		username:username,
+		password:password,
+		confirm:confirm
+	})
+
+	.then(function (e) {
+		return User.login(username, password);
+	})
+}
+
 User.login = function (username, password) {
 	return levelsfm.post('/login', {
 		username:username,
@@ -105,11 +117,7 @@ User.login = function (username, password) {
 		});
 		
 		return currentUser;
-	})
-
-	.fail(function (err) {
-		console.error(err.stack);
-	})
+	});
 }
 
 userData = cookies.get('user');

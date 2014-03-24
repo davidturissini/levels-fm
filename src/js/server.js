@@ -36,8 +36,6 @@ function showLoginView () {
 	var body = jquery(document.getElementById('content'));
 	var view = new LoginView();
 	body.empty();
-	
-				
 
 	view.render()
 		.then(function (e) {

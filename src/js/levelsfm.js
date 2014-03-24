@@ -30945,6 +30945,18 @@ User.current = function () {
 	return currentUser;
 };
 
+User.register = function (username, password, confirm) {
+	return levelsfm.post('/users', {
+		username:username,
+		password:password,
+		confirm:confirm
+	})
+
+	.then(function (e) {
+		return User.login(username, password);
+	})
+}
+
 User.login = function (username, password) {
 	return levelsfm.post('/login', {
 		username:username,
@@ -30968,11 +30980,7 @@ User.login = function (username, password) {
 		});
 		
 		return currentUser;
-	})
-
-	.fail(function (err) {
-		console.error(err.stack);
-	})
+	});
 }
 
 userData = cookies.get('user');
@@ -31024,8 +31032,6 @@ function showLoginView () {
 	var body = jquery(document.getElementById('content'));
 	var view = new LoginView();
 	body.empty();
-	
-				
 
 	view.render()
 		.then(function (e) {
@@ -31098,7 +31104,7 @@ stateless
 
 window.User = User;
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
-},{"./model/Station":118,"./model/User":121,"./views/user/Login":138,"./views/user/Radio":139,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
+},{"./model/Station":118,"./model/User":121,"./views/user/Login":139,"./views/user/Radio":140,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
 var pigeon = require('pigeon');
 var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
@@ -31658,20 +31664,75 @@ proto._onSubmit = function (evt) {
 
 module.exports = LoginForm;
 },{"./../../model/User":121,"events":12}],138:[function(require,module,exports){
+var User = require('./../../model/User');
+var EventEmitter = require('events').EventEmitter;
+
+function RegisterForm (formTag) {
+	this._formTag = formTag;
+	this._usernameInput = formTag.querySelector('input[name="username"]');
+	this._passwordInput = formTag.querySelector('input[name="password"]');
+	this._confirmPasswordInput = formTag.querySelector('input[name="confirm"]');
+
+	this._formTag.addEventListener('submit', this._onSubmit.bind(this));
+
+}
+
+var proto = RegisterForm.prototype = new EventEmitter();
+
+proto.username = function () {
+	return this._usernameInput.value;
+}
+
+proto.password = function () {
+	return this._passwordInput.value;
+}
+
+proto.confirmPassword = function () {
+	return this._confirmPasswordInput.value;
+}
+
+proto._onSubmit = function (evt) {
+	var form = this;
+
+	evt.preventDefault();
+	User.register(this.username(), this.password(), this.confirmPassword())
+		.fail(function () {
+			console.log(arguments);
+			console.log('failed');
+		});
+}
+
+module.exports = RegisterForm;
+},{"./../../model/User":121,"events":12}],139:[function(require,module,exports){
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var LoginForm = require('./../../ui/user/LoginForm');
+var RegisterForm = require('./../../ui/user/RegisterForm');
+var jquery = require('jquery');
 
 var Login = backbone.View.extend({
 
 	render: function () {
 		var view = this;
 
+		jquery(document).on('click', '.user-register-link', function (evt) {
+			evt.preventDefault();
+			view.$el.children().addClass('register');
+
+		}.bind(this));
+
+		jquery(document).on('click', '.user-login-link', function (evt) {
+			evt.preventDefault();
+			view.$el.children().removeClass('register');
+
+		}.bind(this));
+
 		return templates.get('user/login')
 			.then(function (htmlString) {
 				view.el.innerHTML = htmlString;
 
 				view.loginForm = new LoginForm(view.el.querySelector('#user-login'));
+				view.registerForm = new RegisterForm(view.el.querySelector('#user-register'));
 
 			})
 
@@ -31685,7 +31746,7 @@ var Login = backbone.View.extend({
 
 module.exports = Login;
 
-},{"./../../services/templates":125,"./../../ui/user/LoginForm":137,"backbone":1}],139:[function(require,module,exports){
+},{"./../../services/templates":125,"./../../ui/user/LoginForm":137,"./../../ui/user/RegisterForm":138,"backbone":1,"jquery":37}],140:[function(require,module,exports){
 var StationForm = require('./../../ui/StationForm');
 var Tuner = require('./../../model/Tuner');
 var TunerFaceplate = require('./../../ui/TunerFaceplate');
