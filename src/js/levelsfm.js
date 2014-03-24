@@ -30861,6 +30861,10 @@ Object.defineProperties(Tuner.prototype, {
 
 module.exports = Tuner;
 },{"backbone":1,"events":12,"q":59}],121:[function(require,module,exports){
+if (typeof document === 'undefined') {
+	return;
+}
+
 var levelsfm = require('./../services/levelsfm');
 var Stations = require('./../collection/Stations');
 var backbone = require('backbone');
@@ -31003,7 +31007,7 @@ var backbone = require('backbone');
 var LoginView = require('./views/user/Login');
 var RadioView = require('./views/user/Radio');
 
-window.jquery = jquery;
+
 backbone.ajax = function () {
 	return jquery.ajax.apply(jquery, arguments);
 }
@@ -31013,7 +31017,6 @@ backbone.$ = jquery;
 
 function showRadioView (user) {
 	var body = jquery(document.getElementById('content'));
-	window.user = user;
 	var radioView = new RadioView(user);
 
 	radioView.render()
@@ -31102,7 +31105,6 @@ stateless
 	}])
 	.activate();
 
-window.User = User;
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
 },{"./model/Station":118,"./model/User":121,"./views/user/Login":139,"./views/user/Radio":140,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
 var pigeon = require('pigeon');

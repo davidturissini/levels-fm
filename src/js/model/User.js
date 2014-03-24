@@ -1,3 +1,7 @@
+if (typeof document === 'undefined') {
+	return;
+}
+
 var levelsfm = require('./../services/levelsfm');
 var Stations = require('./../collection/Stations');
 var backbone = require('backbone');

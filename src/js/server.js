@@ -7,7 +7,7 @@ var backbone = require('backbone');
 var LoginView = require('./views/user/Login');
 var RadioView = require('./views/user/Radio');
 
-window.jquery = jquery;
+
 backbone.ajax = function () {
 	return jquery.ajax.apply(jquery, arguments);
 }
@@ -17,7 +17,6 @@ backbone.$ = jquery;
 
 function showRadioView (user) {
 	var body = jquery(document.getElementById('content'));
-	window.user = user;
 	var radioView = new RadioView(user);
 
 	radioView.render()
@@ -105,5 +104,3 @@ stateless
 
 	}])
 	.activate();
-
-window.User = User;
