@@ -24,12 +24,7 @@ proto._onSubmit = function (evt) {
 	var form = this;
 
 	evt.preventDefault();
-	User.login(this.username(), this.password())
-		.then(function (user) {
-			form.emit('login', {
-				user:user
-			})
-		});
+	User.login(this.username(), this.password());
 }
 
 module.exports = LoginForm;

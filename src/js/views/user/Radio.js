@@ -22,7 +22,7 @@ var Radio = backbone.View.extend({
 				var faceplate = new TunerFaceplate(view.el, tuner);
 				var stationForm = new StationForm(view.el.querySelector('#stationcreateartist'), view.el.querySelector('#stationcreate'));
 				stationForm.user = view._user;
-
+				
 
 				stationForm.on('station_create', function (evt) {
 					tuner.stations.add(evt.station);
@@ -39,7 +39,7 @@ var Radio = backbone.View.extend({
 					station.destroy();
 				});
 
-
+				
 				return view._user.stations.fetch().then(function (stations) {
 					var station;
 
@@ -55,6 +55,10 @@ var Radio = backbone.View.extend({
 				.fail(function (err) {
 					console.error(err.stack);
 				});
+			})
+
+			.fail(function (err) {
+				console.error(err.stack);
 			});
 	}
 

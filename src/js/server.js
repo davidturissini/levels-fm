@@ -32,6 +32,24 @@ function showRadioView (user) {
 }
 
 
+function showLoginView () {
+	var body = jquery(document.getElementById('content'));
+	var view = new LoginView();
+	body.empty();
+	
+				
+
+	view.render()
+		.then(function (e) {
+			body.append(view.el);
+		})
+
+		.fail(function (err) {
+			console.error(err.stack);
+		});
+}
+
+
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
 	.setPort(process.env.PORT || 5000)
@@ -50,28 +68,22 @@ stateless
 
 		onLoad: function () {
 			var user = User.current();
-			var view;
 			var content;
 			var body = jquery(document.getElementById('content'));
 			body.empty();
 
-			if (user.isAnonymous()) {
-				view = new LoginView();
-				
 
-				view.render()
-					.then(function (e) {
-						body.append(view.el);
-					})
-
-					.fail(function (err) {
-						console.error(err.stack);
-					});
-
-				view.on('user:login', function (evt) {
+			user.on('login_status_change', function (evt) {
+				if (user.isLoggedIn()) {
 					showRadioView(evt.user);
-				});
+				} else {
+					showLoginView();
+				}
+			});
 
+
+			if (user.isAnonymous()) {
+				showLoginView();
 			} else {
 				showRadioView(user);
 			}

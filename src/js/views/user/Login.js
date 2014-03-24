@@ -13,9 +13,6 @@ var Login = backbone.View.extend({
 
 				view.loginForm = new LoginForm(view.el.querySelector('#user-login'));
 
-				view.loginForm.on('login', function (evt) {
-					view.trigger('user:login', evt);
-				});
 			})
 
 			.fail(function (err) {

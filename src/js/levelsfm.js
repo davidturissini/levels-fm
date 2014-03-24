@@ -30868,19 +30868,28 @@ var cookies = require('jakobmattsson-client-cookies');
 var anonymousUser;
 var currentUser = null;
 
+
 var User = backbone.Model.extend({
 
 	initialize: function () {
 		this._stations = new Stations();
-		this._stations.url = levelsfm.domain + '/users/' + this.get('username') + '/stations';
+		
 		this._stations.on('add', function (model) {
 			model.user = this;
 		}, this);
+
+		this.__updateStationsUrl();
+
+		this.on('login_status_change', this.__updateStationsUrl, this);
+		
 	},
 
-	identify: function () {
-		var cookieJar = new Cookies();
-		
+	__updateStationsUrl: function () {
+		if (this.isLoggedIn()) {
+			this._stations.url = levelsfm.domain + '/users/' + this.get('username') + '/stations';
+		} else {
+			this._stations.url = '';
+		}
 	},
 
 	logout: function () {
@@ -30893,11 +30902,18 @@ var User = backbone.Model.extend({
 			cookies.set('user', undefined);
 			user.clear();
 			user.set(User.anonymous().attributes);
+			user.trigger('login_status_change', {
+				user:user
+			});
 		});
 	},
 
 	isAnonymous: function () {
 		return (this.get('username') === '__anon');
+	},
+
+	isLoggedIn: function () {
+		return (typeof this.get('token') === 'string');
 	}
 
 });
@@ -30926,21 +30942,7 @@ User.anonymous = function () {
 }
 
 User.current = function () {
-	var user = currentUser;
-	var userData;
-
-	if (user === null) {
-		userData = cookies.get('user');
-		if (userData) {
-			user = new User(userData);
-		} else {
-			user = User.anonymous();
-		}
-
-		currentUser = user;
-	}
-
-	return user;
+	return currentUser;
 };
 
 User.login = function (username, password) {
@@ -30954,14 +30956,30 @@ User.login = function (username, password) {
 			throw new Error(userData.error);
 		}
 
-		var user = new User(userData);
+		currentUser.clear();
+		currentUser.set(userData);
 		cookies.set('user', {
-			username:user.get('username'),
-			token:user.get('token')
+			username:currentUser.get('username'),
+			token:currentUser.get('token')
+		});
+
+		currentUser.trigger('login_status_change', {
+			user:currentUser
 		});
 		
-		return user;
-	});
+		return currentUser;
+	})
+
+	.fail(function (err) {
+		console.error(err.stack);
+	})
+}
+
+userData = cookies.get('user');
+if (userData) {
+	currentUser = new User(userData);
+} else {
+	currentUser = User.anonymous();
 }
 
 
@@ -31002,6 +31020,24 @@ function showRadioView (user) {
 }
 
 
+function showLoginView () {
+	var body = jquery(document.getElementById('content'));
+	var view = new LoginView();
+	body.empty();
+	
+				
+
+	view.render()
+		.then(function (e) {
+			body.append(view.el);
+		})
+
+		.fail(function (err) {
+			console.error(err.stack);
+		});
+}
+
+
 var staticDir = process.browser ? '' : __dirname + '/../';
 stateless
 	.setPort(process.env.PORT || 5000)
@@ -31020,28 +31056,22 @@ stateless
 
 		onLoad: function () {
 			var user = User.current();
-			var view;
 			var content;
 			var body = jquery(document.getElementById('content'));
 			body.empty();
 
-			if (user.isAnonymous()) {
-				view = new LoginView();
-				
 
-				view.render()
-					.then(function (e) {
-						body.append(view.el);
-					})
-
-					.fail(function (err) {
-						console.error(err.stack);
-					});
-
-				view.on('user:login', function (evt) {
+			user.on('login_status_change', function (evt) {
+				if (user.isLoggedIn()) {
 					showRadioView(evt.user);
-				});
+				} else {
+					showLoginView();
+				}
+			});
 
+
+			if (user.isAnonymous()) {
+				showLoginView();
 			} else {
 				showRadioView(user);
 			}
@@ -31623,12 +31653,7 @@ proto._onSubmit = function (evt) {
 	var form = this;
 
 	evt.preventDefault();
-	User.login(this.username(), this.password())
-		.then(function (user) {
-			form.emit('login', {
-				user:user
-			})
-		});
+	User.login(this.username(), this.password());
 }
 
 module.exports = LoginForm;
@@ -31648,9 +31673,6 @@ var Login = backbone.View.extend({
 
 				view.loginForm = new LoginForm(view.el.querySelector('#user-login'));
 
-				view.loginForm.on('login', function (evt) {
-					view.trigger('user:login', evt);
-				});
 			})
 
 			.fail(function (err) {
@@ -31688,7 +31710,7 @@ var Radio = backbone.View.extend({
 				var faceplate = new TunerFaceplate(view.el, tuner);
 				var stationForm = new StationForm(view.el.querySelector('#stationcreateartist'), view.el.querySelector('#stationcreate'));
 				stationForm.user = view._user;
-
+				
 
 				stationForm.on('station_create', function (evt) {
 					tuner.stations.add(evt.station);
@@ -31705,7 +31727,7 @@ var Radio = backbone.View.extend({
 					station.destroy();
 				});
 
-
+				
 				return view._user.stations.fetch().then(function (stations) {
 					var station;
 
@@ -31721,6 +31743,10 @@ var Radio = backbone.View.extend({
 				.fail(function (err) {
 					console.error(err.stack);
 				});
+			})
+
+			.fail(function (err) {
+				console.error(err.stack);
 			});
 	}
 
