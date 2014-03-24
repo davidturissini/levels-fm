@@ -31006,6 +31006,7 @@ var jquery = require('jquery');
 var backbone = require('backbone');
 var LoginView = require('./views/user/Login');
 var RadioView = require('./views/user/Radio');
+var UserNameLabel = require('./ui/user/UserNameLabel');
 
 
 backbone.ajax = function () {
@@ -31018,6 +31019,7 @@ backbone.$ = jquery;
 function showRadioView (user) {
 	var body = jquery(document.getElementById('content'));
 	var radioView = new RadioView(user);
+	jquery(document.body).addClass('user-logged-in');
 
 	radioView.render()
 		.then(function () {
@@ -31035,6 +31037,7 @@ function showLoginView () {
 	var body = jquery(document.getElementById('content'));
 	var view = new LoginView();
 	body.empty();
+	jquery(document.body).removeClass('user-logged-in');
 
 	view.render()
 		.then(function (e) {
@@ -31069,6 +31072,12 @@ stateless
 			var body = jquery(document.getElementById('content'));
 			body.empty();
 
+			var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
+
+			jquery(document.body).on('click', '.user-logout-link', function (e) {
+				e.preventDefault();
+				user.logout();
+			});
 
 			user.on('login_status_change', function (evt) {
 				if (user.isLoggedIn()) {
@@ -31106,7 +31115,7 @@ stateless
 	.activate();
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
-},{"./model/Station":118,"./model/User":121,"./views/user/Login":139,"./views/user/Radio":140,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
+},{"./model/Station":118,"./model/User":121,"./ui/user/UserNameLabel":139,"./views/user/Login":140,"./views/user/Radio":141,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
 var pigeon = require('pigeon');
 var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
@@ -31706,6 +31715,24 @@ proto._onSubmit = function (evt) {
 
 module.exports = RegisterForm;
 },{"./../../model/User":121,"events":12}],139:[function(require,module,exports){
+function UserNameLabel (el, user) {
+	this._user = user;
+	this._el = el;
+
+	this._updateText();
+	this._user.on('login-status-change', this._updateText, this);
+}
+
+UserNameLabel.prototype = {
+
+	_updateText: function () {
+		this._el.innerHTML = this._user.get('username');
+	}
+
+}
+
+module.exports = UserNameLabel;
+},{}],140:[function(require,module,exports){
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var LoginForm = require('./../../ui/user/LoginForm');
@@ -31748,7 +31775,7 @@ var Login = backbone.View.extend({
 
 module.exports = Login;
 
-},{"./../../services/templates":125,"./../../ui/user/LoginForm":137,"./../../ui/user/RegisterForm":138,"backbone":1,"jquery":37}],140:[function(require,module,exports){
+},{"./../../services/templates":125,"./../../ui/user/LoginForm":137,"./../../ui/user/RegisterForm":138,"backbone":1,"jquery":37}],141:[function(require,module,exports){
 var StationForm = require('./../../ui/StationForm');
 var Tuner = require('./../../model/Tuner');
 var TunerFaceplate = require('./../../ui/TunerFaceplate');

@@ -6,6 +6,7 @@ var jquery = require('jquery');
 var backbone = require('backbone');
 var LoginView = require('./views/user/Login');
 var RadioView = require('./views/user/Radio');
+var UserNameLabel = require('./ui/user/UserNameLabel');
 
 
 backbone.ajax = function () {
@@ -18,6 +19,7 @@ backbone.$ = jquery;
 function showRadioView (user) {
 	var body = jquery(document.getElementById('content'));
 	var radioView = new RadioView(user);
+	jquery(document.body).addClass('user-logged-in');
 
 	radioView.render()
 		.then(function () {
@@ -35,6 +37,7 @@ function showLoginView () {
 	var body = jquery(document.getElementById('content'));
 	var view = new LoginView();
 	body.empty();
+	jquery(document.body).removeClass('user-logged-in');
 
 	view.render()
 		.then(function (e) {
@@ -69,6 +72,12 @@ stateless
 			var body = jquery(document.getElementById('content'));
 			body.empty();
 
+			var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
+
+			jquery(document.body).on('click', '.user-logout-link', function (e) {
+				e.preventDefault();
+				user.logout();
+			});
 
 			user.on('login_status_change', function (evt) {
 				if (user.isLoggedIn()) {
