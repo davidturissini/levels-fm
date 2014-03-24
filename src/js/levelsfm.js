@@ -31720,7 +31720,7 @@ function UserNameLabel (el, user) {
 	this._el = el;
 
 	this._updateText();
-	this._user.on('login-status-change', this._updateText, this);
+	this._user.on('login_status_change', this._updateText, this);
 }
 
 UserNameLabel.prototype = {
