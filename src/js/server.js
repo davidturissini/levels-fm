@@ -15,7 +15,6 @@ backbone.ajax = function () {
 backbone.$ = jquery;
 
 
-
 function showRadioView (user) {
 	var body = jquery(document.getElementById('content'));
 	var radioView = new RadioView(user);

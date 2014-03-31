@@ -1,0 +1,15 @@
+{{#models}}
+	<li class="artist" data-permalink="{{attributes.permalink}}">
+		<img class="artist-avatar" src="{{attributes.avatar_url}}" />
+		<div class="text">
+			<h3 class="artist-name">
+				{{attributes.username}}
+			</h3>
+			<ul class="attributes">
+				<li class="attribute">{{attributes.followers_count}} followers</li>
+				<li class="attribute">{{attributes.followings_count}} followings</li>
+				<li class="attribute">{{attributes.track_count}} tracks</li>
+			</ul>
+		</div>
+	</li>
+{{/models}}

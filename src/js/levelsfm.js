@@ -1608,7 +1608,7 @@
 
 }));
 
-},{"underscore":116}],2:[function(require,module,exports){
+},{"underscore":117}],2:[function(require,module,exports){
 
 },{}],3:[function(require,module,exports){
 /**
@@ -17707,6 +17707,578 @@ return jQuery;
 }));
 
 },{}],38:[function(require,module,exports){
+/*!
+ * mustache.js - Logic-less {{mustache}} templates with JavaScript
+ * http://github.com/janl/mustache.js
+ */
+
+/*global define: false*/
+
+(function (root, factory) {
+  if (typeof exports === "object" && exports) {
+    factory(exports); // CommonJS
+  } else {
+    var mustache = {};
+    factory(mustache);
+    if (typeof define === "function" && define.amd) {
+      define(mustache); // AMD
+    } else {
+      root.Mustache = mustache; // <script>
+    }
+  }
+}(this, function (mustache) {
+
+  var whiteRe = /\s*/;
+  var spaceRe = /\s+/;
+  var nonSpaceRe = /\S/;
+  var eqRe = /\s*=/;
+  var curlyRe = /\s*\}/;
+  var tagRe = /#|\^|\/|>|\{|&|=|!/;
+
+  // Workaround for https://issues.apache.org/jira/browse/COUCHDB-577
+  // See https://github.com/janl/mustache.js/issues/189
+  var RegExp_test = RegExp.prototype.test;
+  function testRegExp(re, string) {
+    return RegExp_test.call(re, string);
+  }
+
+  function isWhitespace(string) {
+    return !testRegExp(nonSpaceRe, string);
+  }
+
+  var Object_toString = Object.prototype.toString;
+  var isArray = Array.isArray || function (object) {
+    return Object_toString.call(object) === '[object Array]';
+  };
+
+  function isFunction(object) {
+    return typeof object === 'function';
+  }
+
+  function escapeRegExp(string) {
+    return string.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
+  }
+
+  var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+  };
+
+  function escapeHtml(string) {
+    return String(string).replace(/[&<>"'\/]/g, function (s) {
+      return entityMap[s];
+    });
+  }
+
+  function escapeTags(tags) {
+    if (!isArray(tags) || tags.length !== 2) {
+      throw new Error('Invalid tags: ' + tags);
+    }
+
+    return [
+      new RegExp(escapeRegExp(tags[0]) + "\\s*"),
+      new RegExp("\\s*" + escapeRegExp(tags[1]))
+    ];
+  }
+
+  /**
+   * Breaks up the given `template` string into a tree of tokens. If the `tags`
+   * argument is given here it must be an array with two string values: the
+   * opening and closing tags used in the template (e.g. [ "<%", "%>" ]). Of
+   * course, the default is to use mustaches (i.e. mustache.tags).
+   *
+   * A token is an array with at least 4 elements. The first element is the
+   * mustache symbol that was used inside the tag, e.g. "#" or "&". If the tag
+   * did not contain a symbol (i.e. {{myValue}}) this element is "name". For
+   * all template text that appears outside a symbol this element is "text".
+   *
+   * The second element of a token is its "value". For mustache tags this is
+   * whatever else was inside the tag besides the opening symbol. For text tokens
+   * this is the text itself.
+   *
+   * The third and fourth elements of the token are the start and end indices
+   * in the original template of the token, respectively.
+   *
+   * Tokens that are the root node of a subtree contain two more elements: an
+   * array of tokens in the subtree and the index in the original template at which
+   * the closing tag for that section begins.
+   */
+  function parseTemplate(template, tags) {
+    tags = tags || mustache.tags;
+    template = template || '';
+
+    if (typeof tags === 'string') {
+      tags = tags.split(spaceRe);
+    }
+
+    var tagRes = escapeTags(tags);
+    var scanner = new Scanner(template);
+
+    var sections = [];     // Stack to hold section tokens
+    var tokens = [];       // Buffer to hold the tokens
+    var spaces = [];       // Indices of whitespace tokens on the current line
+    var hasTag = false;    // Is there a {{tag}} on the current line?
+    var nonSpace = false;  // Is there a non-space char on the current line?
+
+    // Strips all whitespace tokens array for the current line
+    // if there was a {{#tag}} on it and otherwise only space.
+    function stripSpace() {
+      if (hasTag && !nonSpace) {
+        while (spaces.length) {
+          delete tokens[spaces.pop()];
+        }
+      } else {
+        spaces = [];
+      }
+
+      hasTag = false;
+      nonSpace = false;
+    }
+
+    var start, type, value, chr, token, openSection;
+    while (!scanner.eos()) {
+      start = scanner.pos;
+
+      // Match any text between tags.
+      value = scanner.scanUntil(tagRes[0]);
+      if (value) {
+        for (var i = 0, len = value.length; i < len; ++i) {
+          chr = value.charAt(i);
+
+          if (isWhitespace(chr)) {
+            spaces.push(tokens.length);
+          } else {
+            nonSpace = true;
+          }
+
+          tokens.push(['text', chr, start, start + 1]);
+          start += 1;
+
+          // Check for whitespace on the current line.
+          if (chr === '\n') {
+            stripSpace();
+          }
+        }
+      }
+
+      // Match the opening tag.
+      if (!scanner.scan(tagRes[0])) break;
+      hasTag = true;
+
+      // Get the tag type.
+      type = scanner.scan(tagRe) || 'name';
+      scanner.scan(whiteRe);
+
+      // Get the tag value.
+      if (type === '=') {
+        value = scanner.scanUntil(eqRe);
+        scanner.scan(eqRe);
+        scanner.scanUntil(tagRes[1]);
+      } else if (type === '{') {
+        value = scanner.scanUntil(new RegExp('\\s*' + escapeRegExp('}' + tags[1])));
+        scanner.scan(curlyRe);
+        scanner.scanUntil(tagRes[1]);
+        type = '&';
+      } else {
+        value = scanner.scanUntil(tagRes[1]);
+      }
+
+      // Match the closing tag.
+      if (!scanner.scan(tagRes[1])) {
+        throw new Error('Unclosed tag at ' + scanner.pos);
+      }
+
+      token = [ type, value, start, scanner.pos ];
+      tokens.push(token);
+
+      if (type === '#' || type === '^') {
+        sections.push(token);
+      } else if (type === '/') {
+        // Check section nesting.
+        openSection = sections.pop();
+
+        if (!openSection) {
+          throw new Error('Unopened section "' + value + '" at ' + start);
+        }
+        if (openSection[1] !== value) {
+          throw new Error('Unclosed section "' + openSection[1] + '" at ' + start);
+        }
+      } else if (type === 'name' || type === '{' || type === '&') {
+        nonSpace = true;
+      } else if (type === '=') {
+        // Set the tags for the next time around.
+        tagRes = escapeTags(tags = value.split(spaceRe));
+      }
+    }
+
+    // Make sure there are no open sections when we're done.
+    openSection = sections.pop();
+    if (openSection) {
+      throw new Error('Unclosed section "' + openSection[1] + '" at ' + scanner.pos);
+    }
+
+    return nestTokens(squashTokens(tokens));
+  }
+
+  /**
+   * Combines the values of consecutive text tokens in the given `tokens` array
+   * to a single token.
+   */
+  function squashTokens(tokens) {
+    var squashedTokens = [];
+
+    var token, lastToken;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      if (token) {
+        if (token[0] === 'text' && lastToken && lastToken[0] === 'text') {
+          lastToken[1] += token[1];
+          lastToken[3] = token[3];
+        } else {
+          squashedTokens.push(token);
+          lastToken = token;
+        }
+      }
+    }
+
+    return squashedTokens;
+  }
+
+  /**
+   * Forms the given array of `tokens` into a nested tree structure where
+   * tokens that represent a section have two additional items: 1) an array of
+   * all tokens that appear in that section and 2) the index in the original
+   * template that represents the end of that section.
+   */
+  function nestTokens(tokens) {
+    var nestedTokens = [];
+    var collector = nestedTokens;
+    var sections = [];
+
+    var token, section;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      switch (token[0]) {
+      case '#':
+      case '^':
+        collector.push(token);
+        sections.push(token);
+        collector = token[4] = [];
+        break;
+      case '/':
+        section = sections.pop();
+        section[5] = token[2];
+        collector = sections.length > 0 ? sections[sections.length - 1][4] : nestedTokens;
+        break;
+      default:
+        collector.push(token);
+      }
+    }
+
+    return nestedTokens;
+  }
+
+  /**
+   * A simple string scanner that is used by the template parser to find
+   * tokens in template strings.
+   */
+  function Scanner(string) {
+    this.string = string;
+    this.tail = string;
+    this.pos = 0;
+  }
+
+  /**
+   * Returns `true` if the tail is empty (end of string).
+   */
+  Scanner.prototype.eos = function () {
+    return this.tail === "";
+  };
+
+  /**
+   * Tries to match the given regular expression at the current position.
+   * Returns the matched text if it can match, the empty string otherwise.
+   */
+  Scanner.prototype.scan = function (re) {
+    var match = this.tail.match(re);
+
+    if (match && match.index === 0) {
+      var string = match[0];
+      this.tail = this.tail.substring(string.length);
+      this.pos += string.length;
+      return string;
+    }
+
+    return "";
+  };
+
+  /**
+   * Skips all text until the given regular expression can be matched. Returns
+   * the skipped string, which is the entire tail if no match can be made.
+   */
+  Scanner.prototype.scanUntil = function (re) {
+    var index = this.tail.search(re), match;
+
+    switch (index) {
+    case -1:
+      match = this.tail;
+      this.tail = "";
+      break;
+    case 0:
+      match = "";
+      break;
+    default:
+      match = this.tail.substring(0, index);
+      this.tail = this.tail.substring(index);
+    }
+
+    this.pos += match.length;
+
+    return match;
+  };
+
+  /**
+   * Represents a rendering context by wrapping a view object and
+   * maintaining a reference to the parent context.
+   */
+  function Context(view, parentContext) {
+    this.view = view == null ? {} : view;
+    this.cache = { '.': this.view };
+    this.parent = parentContext;
+  }
+
+  /**
+   * Creates a new context using the given view with this context
+   * as the parent.
+   */
+  Context.prototype.push = function (view) {
+    return new Context(view, this);
+  };
+
+  /**
+   * Returns the value of the given name in this context, traversing
+   * up the context hierarchy if the value is absent in this context's view.
+   */
+  Context.prototype.lookup = function (name) {
+    var value;
+    if (name in this.cache) {
+      value = this.cache[name];
+    } else {
+      var context = this;
+
+      while (context) {
+        if (name.indexOf('.') > 0) {
+          value = context.view;
+
+          var names = name.split('.'), i = 0;
+          while (value != null && i < names.length) {
+            value = value[names[i++]];
+          }
+        } else {
+          value = context.view[name];
+        }
+
+        if (value != null) break;
+
+        context = context.parent;
+      }
+
+      this.cache[name] = value;
+    }
+
+    if (isFunction(value)) {
+      value = value.call(this.view);
+    }
+
+    return value;
+  };
+
+  /**
+   * A Writer knows how to take a stream of tokens and render them to a
+   * string, given a context. It also maintains a cache of templates to
+   * avoid the need to parse the same template twice.
+   */
+  function Writer() {
+    this.cache = {};
+  }
+
+  /**
+   * Clears all cached templates in this writer.
+   */
+  Writer.prototype.clearCache = function () {
+    this.cache = {};
+  };
+
+  /**
+   * Parses and caches the given `template` and returns the array of tokens
+   * that is generated from the parse.
+   */
+  Writer.prototype.parse = function (template, tags) {
+    var cache = this.cache;
+    var tokens = cache[template];
+
+    if (tokens == null) {
+      tokens = cache[template] = parseTemplate(template, tags);
+    }
+
+    return tokens;
+  };
+
+  /**
+   * High-level method that is used to render the given `template` with
+   * the given `view`.
+   *
+   * The optional `partials` argument may be an object that contains the
+   * names and templates of partials that are used in the template. It may
+   * also be a function that is used to load partial templates on the fly
+   * that takes a single argument: the name of the partial.
+   */
+  Writer.prototype.render = function (template, view, partials) {
+    var tokens = this.parse(template);
+    var context = (view instanceof Context) ? view : new Context(view);
+    return this.renderTokens(tokens, context, partials, template);
+  };
+
+  /**
+   * Low-level method that renders the given array of `tokens` using
+   * the given `context` and `partials`.
+   *
+   * Note: The `originalTemplate` is only ever used to extract the portion
+   * of the original template that was contained in a higher-order section.
+   * If the template doesn't use higher-order sections, this argument may
+   * be omitted.
+   */
+  Writer.prototype.renderTokens = function (tokens, context, partials, originalTemplate) {
+    var buffer = '';
+
+    // This function is used to render an arbitrary template
+    // in the current context by higher-order sections.
+    var self = this;
+    function subRender(template) {
+      return self.render(template, context, partials);
+    }
+
+    var token, value;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      switch (token[0]) {
+      case '#':
+        value = context.lookup(token[1]);
+        if (!value) continue;
+
+        if (isArray(value)) {
+          for (var j = 0, jlen = value.length; j < jlen; ++j) {
+            buffer += this.renderTokens(token[4], context.push(value[j]), partials, originalTemplate);
+          }
+        } else if (typeof value === 'object' || typeof value === 'string') {
+          buffer += this.renderTokens(token[4], context.push(value), partials, originalTemplate);
+        } else if (isFunction(value)) {
+          if (typeof originalTemplate !== 'string') {
+            throw new Error('Cannot use higher-order sections without the original template');
+          }
+
+          // Extract the portion of the original template that the section contains.
+          value = value.call(context.view, originalTemplate.slice(token[3], token[5]), subRender);
+
+          if (value != null) buffer += value;
+        } else {
+          buffer += this.renderTokens(token[4], context, partials, originalTemplate);
+        }
+
+        break;
+      case '^':
+        value = context.lookup(token[1]);
+
+        // Use JavaScript's definition of falsy. Include empty arrays.
+        // See https://github.com/janl/mustache.js/issues/186
+        if (!value || (isArray(value) && value.length === 0)) {
+          buffer += this.renderTokens(token[4], context, partials, originalTemplate);
+        }
+
+        break;
+      case '>':
+        if (!partials) continue;
+        value = isFunction(partials) ? partials(token[1]) : partials[token[1]];
+        if (value != null) buffer += this.renderTokens(this.parse(value), context, partials, value);
+        break;
+      case '&':
+        value = context.lookup(token[1]);
+        if (value != null) buffer += value;
+        break;
+      case 'name':
+        value = context.lookup(token[1]);
+        if (value != null) buffer += mustache.escape(value);
+        break;
+      case 'text':
+        buffer += token[1];
+        break;
+      }
+    }
+
+    return buffer;
+  };
+
+  mustache.name = "mustache.js";
+  mustache.version = "0.8.1";
+  mustache.tags = [ "{{", "}}" ];
+
+  // All high-level mustache.* functions use this writer.
+  var defaultWriter = new Writer();
+
+  /**
+   * Clears all cached templates in the default writer.
+   */
+  mustache.clearCache = function () {
+    return defaultWriter.clearCache();
+  };
+
+  /**
+   * Parses and caches the given template in the default writer and returns the
+   * array of tokens it contains. Doing this ahead of time avoids the need to
+   * parse templates on the fly as they are rendered.
+   */
+  mustache.parse = function (template, tags) {
+    return defaultWriter.parse(template, tags);
+  };
+
+  /**
+   * Renders the `template` with the given `view` and `partials` using the
+   * default writer.
+   */
+  mustache.render = function (template, view, partials) {
+    return defaultWriter.render(template, view, partials);
+  };
+
+  // This is here for backwards compatibility with 0.4.x.
+  mustache.to_html = function (template, view, partials, send) {
+    var result = mustache.render(template, view, partials);
+
+    if (isFunction(send)) {
+      send(result);
+    } else {
+      return result;
+    }
+  };
+
+  // Export the escaping function so that the user may override it.
+  // See https://github.com/janl/mustache.js/issues/244
+  mustache.escape = escapeHtml;
+
+  // Export these mainly for testing, but also for advanced usage.
+  mustache.Scanner = Scanner;
+  mustache.Context = Context;
+  mustache.Writer = Writer;
+
+}));
+
+},{}],39:[function(require,module,exports){
 var type
 try {
   type = require('type-of')
@@ -17998,7 +18570,7 @@ function extend(target) {
   })
   return target
 }
-},{"type-of":39}],39:[function(require,module,exports){
+},{"type-of":40}],40:[function(require,module,exports){
 var toString = Object.prototype.toString
 
 module.exports = function(val){
@@ -18029,7 +18601,7 @@ module.exports = function(val){
   return typeof val
 }
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (process){
 // vim:ts=4:sts=4:sw=4:
 /*!
@@ -19970,7 +20542,7 @@ return Q;
 });
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],41:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],42:[function(require,module,exports){
 (function (process){
 // Copyright 2010-2012 Mikeal Rogers
 //
@@ -20124,7 +20696,7 @@ request.cookie = function (str) {
 }
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./lib/cookies":42,"./lib/copy":43,"./request":52,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],42:[function(require,module,exports){
+},{"./lib/cookies":43,"./lib/copy":44,"./request":53,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],43:[function(require,module,exports){
 var optional = require('./optional')
   , tough = optional('tough-cookie')
   , Cookie = tough && tough.Cookie
@@ -20162,7 +20734,7 @@ exports.jar = function() {
   return new RequestJar();
 };
 
-},{"./optional":46}],43:[function(require,module,exports){
+},{"./optional":47}],44:[function(require,module,exports){
 module.exports =
 function copy (obj) {
   var o = {}
@@ -20171,7 +20743,7 @@ function copy (obj) {
   })
   return o
 }
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 (function (process){
 var util = require('util')
 
@@ -20182,7 +20754,7 @@ function debug () {
 }
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],45:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],46:[function(require,module,exports){
 // Safe toJSON
 module.exports =
 function getSafe (self, uuid) {
@@ -20217,14 +20789,14 @@ function getSafe (self, uuid) {
 
   return safe
 }
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 module.exports = function(module) {
   try {
     return require(module);
   } catch (e) {}
 };
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 module.exports = ForeverAgent
 ForeverAgent.SSL = ForeverAgentSSL
 
@@ -20345,7 +20917,7 @@ function createConnectionSSL (port, host, options) {
   return tls.connect(options);
 }
 
-},{"http":13,"https":17,"net":2,"tls":107,"util":35}],48:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":108,"util":35}],49:[function(require,module,exports){
 module.exports = stringify;
 
 function getSerialize (fn, decycle) {
@@ -20386,7 +20958,7 @@ function stringify(obj, fn, spaces, decycle) {
 
 stringify.getSerialize = getSerialize;
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 (function (process,__dirname){
 var path = require('path');
 var fs = require('fs');
@@ -20504,7 +21076,7 @@ mime.charsets = {
 module.exports = mime;
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/../../node_modules/pigeon/node_modules/request/node_modules/mime")
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],50:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],51:[function(require,module,exports){
 (function (Buffer){
 //     uuid.js
 //
@@ -20753,7 +21325,7 @@ module.exports = mime;
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3,"crypto":7}],51:[function(require,module,exports){
+},{"buffer":3,"crypto":7}],52:[function(require,module,exports){
 /**
  * Object#toString() ref for stringify().
  */
@@ -21121,7 +21693,7 @@ function decode(str) {
   }
 }
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (process,Buffer){
 var optional = require('./lib/optional')
   , http = require('http')
@@ -22374,7 +22946,7 @@ Request.prototype.toJSON = toJSON
 module.exports = Request
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),require("buffer").Buffer)
-},{"./lib/cookies":42,"./lib/copy":43,"./lib/debug":44,"./lib/getSafe":45,"./lib/optional":46,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":47,"http":13,"json-stringify-safe":48,"mime":49,"node-uuid":50,"qs":51,"querystring":24,"stream":26,"url":33,"util":35}],53:[function(require,module,exports){
+},{"./lib/cookies":43,"./lib/copy":44,"./lib/debug":45,"./lib/getSafe":46,"./lib/optional":47,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":48,"http":13,"json-stringify-safe":49,"mime":50,"node-uuid":51,"qs":52,"querystring":24,"stream":26,"url":33,"util":35}],54:[function(require,module,exports){
 var resourceFetch = require('./resource/fetch');
 
 module.exports = {
@@ -22382,7 +22954,7 @@ module.exports = {
 	post:resourceFetch.post,
 	del:resourceFetch.del
 }
-},{"./resource/fetch":55}],54:[function(require,module,exports){
+},{"./resource/fetch":56}],55:[function(require,module,exports){
 var ajax = require('component-ajax');
 var Q = require('q');
 
@@ -22433,7 +23005,7 @@ exports.post = function (path, params) {
 
 	return defer.promise;
 }
-},{"component-ajax":38,"q":40}],55:[function(require,module,exports){
+},{"component-ajax":39,"q":41}],56:[function(require,module,exports){
 (function (process){
 if (process.browser !== true) {
 	module.exports = require('./server/fetch');
@@ -22441,7 +23013,7 @@ if (process.browser !== true) {
 	module.exports = require('./browser/browserfetch');
 }
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./browser/browserfetch":54,"./server/fetch":56,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],56:[function(require,module,exports){
+},{"./browser/browserfetch":55,"./server/fetch":57,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],57:[function(require,module,exports){
 var fsfetch = require('./fsfetch').fetch;
 var urlfetch = require('./urlfetch').fetch;
 
@@ -22456,7 +23028,7 @@ exports.fetch = function resourceFetch (path, params) {
 };
 
 
-},{"./fsfetch":57,"./urlfetch":58}],57:[function(require,module,exports){
+},{"./fsfetch":58,"./urlfetch":59}],58:[function(require,module,exports){
 var Q = require('q');
 var fs = require('fs');
 
@@ -22481,7 +23053,7 @@ exports.fetch = function (path) {
 	return defer.promise;
 
 }
-},{"fs":2,"q":40}],58:[function(require,module,exports){
+},{"fs":2,"q":41}],59:[function(require,module,exports){
 var Q = require('q');
 var request = require('request');
 var querystring = require('querystring');
@@ -22518,7 +23090,7 @@ function fetch (path, params) {
 }
 
 exports.fetch = fetch;
-},{"http":13,"q":40,"querystring":24,"request":41}],59:[function(require,module,exports){
+},{"http":13,"q":41,"querystring":24,"request":42}],60:[function(require,module,exports){
 (function (process){
 // vim:ts=4:sts=4:sw=4:
 /*!
@@ -24091,27 +24663,27 @@ var qEndingLine = captureLine();
 });
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],60:[function(require,module,exports){
-module.exports=require(38)
-},{"type-of":61}],61:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],61:[function(require,module,exports){
 module.exports=require(39)
-},{}],62:[function(require,module,exports){
-arguments[4][41][0].apply(exports,arguments)
-},{"./lib/cookies":63,"./lib/copy":64,"./request":73,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],63:[function(require,module,exports){
-module.exports=require(42)
-},{"./optional":67}],64:[function(require,module,exports){
+},{"type-of":62}],62:[function(require,module,exports){
+module.exports=require(40)
+},{}],63:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"./lib/cookies":64,"./lib/copy":65,"./request":74,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],64:[function(require,module,exports){
 module.exports=require(43)
-},{}],65:[function(require,module,exports){
+},{"./optional":68}],65:[function(require,module,exports){
 module.exports=require(44)
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],66:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 module.exports=require(45)
-},{}],67:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],67:[function(require,module,exports){
 module.exports=require(46)
 },{}],68:[function(require,module,exports){
 module.exports=require(47)
-},{"http":13,"https":17,"net":2,"tls":107,"util":35}],69:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 module.exports=require(48)
-},{}],70:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":108,"util":35}],70:[function(require,module,exports){
+module.exports=require(49)
+},{}],71:[function(require,module,exports){
 (function (process,__dirname){
 var path = require('path');
 var fs = require('fs');
@@ -24229,27 +24801,27 @@ mime.charsets = {
 module.exports = mime;
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/../../node_modules/soundcloud/node_modules/pigeon/node_modules/request/node_modules/mime")
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],71:[function(require,module,exports){
-module.exports=require(50)
-},{"buffer":3,"crypto":7}],72:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],72:[function(require,module,exports){
 module.exports=require(51)
-},{}],73:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
-},{"./lib/cookies":63,"./lib/copy":64,"./lib/debug":65,"./lib/getSafe":66,"./lib/optional":67,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":68,"http":13,"json-stringify-safe":69,"mime":70,"node-uuid":71,"qs":72,"querystring":24,"stream":26,"url":33,"util":35}],74:[function(require,module,exports){
+},{"buffer":3,"crypto":7}],73:[function(require,module,exports){
+module.exports=require(52)
+},{}],74:[function(require,module,exports){
 arguments[4][53][0].apply(exports,arguments)
-},{"./resource/fetch":76}],75:[function(require,module,exports){
+},{"./lib/cookies":64,"./lib/copy":65,"./lib/debug":66,"./lib/getSafe":67,"./lib/optional":68,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":69,"http":13,"json-stringify-safe":70,"mime":71,"node-uuid":72,"qs":73,"querystring":24,"stream":26,"url":33,"util":35}],75:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
-},{"component-ajax":60,"q":80}],76:[function(require,module,exports){
+},{"./resource/fetch":77}],76:[function(require,module,exports){
 arguments[4][55][0].apply(exports,arguments)
-},{"./browser/browserfetch":75,"./server/fetch":77,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],77:[function(require,module,exports){
+},{"component-ajax":61,"q":81}],77:[function(require,module,exports){
 arguments[4][56][0].apply(exports,arguments)
-},{"./fsfetch":78,"./urlfetch":79}],78:[function(require,module,exports){
-module.exports=require(57)
-},{"fs":2,"q":80}],79:[function(require,module,exports){
-arguments[4][58][0].apply(exports,arguments)
-},{"http":13,"q":80,"querystring":24,"request":62}],80:[function(require,module,exports){
-module.exports=require(40)
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],81:[function(require,module,exports){
+},{"./browser/browserfetch":76,"./server/fetch":78,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],78:[function(require,module,exports){
+arguments[4][57][0].apply(exports,arguments)
+},{"./fsfetch":79,"./urlfetch":80}],79:[function(require,module,exports){
+module.exports=require(58)
+},{"fs":2,"q":81}],80:[function(require,module,exports){
+arguments[4][59][0].apply(exports,arguments)
+},{"http":13,"q":81,"querystring":24,"request":63}],81:[function(require,module,exports){
+module.exports=require(41)
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],82:[function(require,module,exports){
 var _ = require('underscore');
 var pigeon = require('pigeon');
 var q = require('q');
@@ -24258,6 +24830,7 @@ var defaults = {
 	client_id:''
 }
 
+
 var soundcloud = {
 
 	configure: function (config) {
@@ -24265,40 +24838,35 @@ var soundcloud = {
 	},
 
 	joinPaginated: function (url, limit, max, options) {
-		var defer = q.defer();
 		var data = [];
 		var promises = [];
 		var offset = 0;
+		var params;
 		options = options || {};
 		max = (max > 8000) ? 8000 : max;
 
 
 		for(offset; offset < max; offset += limit) {
-			(function (o) {
-				var params = _.extend(options, {
-					limit:limit,
-					offset:o
-				});
-
-				var promise = soundcloud.api(url, params);
-
-				promise = promise.then(function (returnedData) {
-					defer.notify(returnedData);
-					data = data.concat(returnedData);
-				});
-
-				promises.push(promise);
-
-
-			})(offset);
-		}
-
-		q.all(promises)
-			.then(function () {
-				defer.resolve(data);
+			params = _.extend(options, {
+				limit:limit,
+				offset:offset
 			});
 
-		return defer.promise;
+			promises.push(soundcloud.api(url, params));
+		}
+
+
+
+		function pushData(returnedData) {
+			data = data.concat(returnedData);
+		};
+
+		return promises.reduce(function (previousValue, currentValue) {
+			return currentValue.then(pushData);
+		}, q()).then(function () {
+			return data;
+		})
+
 	},
 	
 	api: function (path, requestOptions) {
@@ -24314,7 +24882,8 @@ var soundcloud = {
 			.then(function (e) {
 				var json = JSON.parse(e);
 				defer.resolve(json);
-			}, function () {
+			}, function (e) {
+				console.log(e.stack);
 				soundcloud.api(path, requestOptions)
 					.then(function (parsed, raw) {
 						defer.resolve(parsed);
@@ -24328,7 +24897,7 @@ var soundcloud = {
 
 
 exports.soundcloud = soundcloud;
-},{"pigeon":74,"q":80,"underscore":116}],82:[function(require,module,exports){
+},{"pigeon":75,"q":81,"underscore":117}],83:[function(require,module,exports){
 //     Backbone.js 1.1.0
 
 //     (c) 2010-2011 Jeremy Ashkenas, DocumentCloud Inc.
@@ -25911,29 +26480,29 @@ exports.soundcloud = soundcloud;
 
 }).call(this);
 
-},{"underscore":116}],83:[function(require,module,exports){
-module.exports=require(38)
-},{"type-of":84}],84:[function(require,module,exports){
+},{"underscore":117}],84:[function(require,module,exports){
 module.exports=require(39)
-},{}],85:[function(require,module,exports){
+},{"type-of":85}],85:[function(require,module,exports){
 module.exports=require(40)
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],86:[function(require,module,exports){
-arguments[4][41][0].apply(exports,arguments)
-},{"./lib/cookies":87,"./lib/copy":88,"./request":97,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],87:[function(require,module,exports){
-module.exports=require(42)
-},{"./optional":91}],88:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
+module.exports=require(41)
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],87:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"./lib/cookies":88,"./lib/copy":89,"./request":98,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],88:[function(require,module,exports){
 module.exports=require(43)
-},{}],89:[function(require,module,exports){
+},{"./optional":92}],89:[function(require,module,exports){
 module.exports=require(44)
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],90:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 module.exports=require(45)
-},{}],91:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"util":35}],91:[function(require,module,exports){
 module.exports=require(46)
 },{}],92:[function(require,module,exports){
 module.exports=require(47)
-},{"http":13,"https":17,"net":2,"tls":107,"util":35}],93:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 module.exports=require(48)
-},{}],94:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":108,"util":35}],94:[function(require,module,exports){
+module.exports=require(49)
+},{}],95:[function(require,module,exports){
 (function (process,__dirname){
 var path = require('path');
 var fs = require('fs');
@@ -26051,25 +26620,25 @@ mime.charsets = {
 module.exports = mime;
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/../../node_modules/stateless/node_modules/pigeon/node_modules/request/node_modules/mime")
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],95:[function(require,module,exports){
-module.exports=require(50)
-},{"buffer":3,"crypto":7}],96:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"fs":2,"path":20}],96:[function(require,module,exports){
 module.exports=require(51)
-},{}],97:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
-},{"./lib/cookies":87,"./lib/copy":88,"./lib/debug":89,"./lib/getSafe":90,"./lib/optional":91,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":92,"http":13,"json-stringify-safe":93,"mime":94,"node-uuid":95,"qs":96,"querystring":24,"stream":26,"url":33,"util":35}],98:[function(require,module,exports){
+},{"buffer":3,"crypto":7}],97:[function(require,module,exports){
+module.exports=require(52)
+},{}],98:[function(require,module,exports){
 arguments[4][53][0].apply(exports,arguments)
-},{"./resource/fetch":100}],99:[function(require,module,exports){
+},{"./lib/cookies":88,"./lib/copy":89,"./lib/debug":90,"./lib/getSafe":91,"./lib/optional":92,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"buffer":3,"crypto":7,"forever-agent":93,"http":13,"json-stringify-safe":94,"mime":95,"node-uuid":96,"qs":97,"querystring":24,"stream":26,"url":33,"util":35}],99:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
-},{"component-ajax":83,"q":85}],100:[function(require,module,exports){
+},{"./resource/fetch":101}],100:[function(require,module,exports){
 arguments[4][55][0].apply(exports,arguments)
-},{"./browser/browserfetch":99,"./server/fetch":101,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],101:[function(require,module,exports){
+},{"component-ajax":84,"q":86}],101:[function(require,module,exports){
 arguments[4][56][0].apply(exports,arguments)
-},{"./fsfetch":102,"./urlfetch":103}],102:[function(require,module,exports){
-module.exports=require(57)
-},{"fs":2,"q":85}],103:[function(require,module,exports){
-arguments[4][58][0].apply(exports,arguments)
-},{"http":13,"q":85,"querystring":24,"request":86}],104:[function(require,module,exports){
+},{"./browser/browserfetch":100,"./server/fetch":102,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],102:[function(require,module,exports){
+arguments[4][57][0].apply(exports,arguments)
+},{"./fsfetch":103,"./urlfetch":104}],103:[function(require,module,exports){
+module.exports=require(58)
+},{"fs":2,"q":86}],104:[function(require,module,exports){
+arguments[4][59][0].apply(exports,arguments)
+},{"http":13,"q":86,"querystring":24,"request":87}],105:[function(require,module,exports){
 (function (process){
 // vim:ts=4:sts=4:sw=4:
 /*!
@@ -28008,7 +28577,7 @@ return Q;
 });
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],105:[function(require,module,exports){
+},{"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19}],106:[function(require,module,exports){
 var Backbone = require('backbone');
 var _ = require('underscore');
 var jquery = require('jquery');
@@ -28250,7 +28819,7 @@ var backboneServer = {
 }
 
 module.exports = backboneServer;
-},{"backbone":82,"jquery":37,"pigeon":98,"q":104,"underscore":116}],106:[function(require,module,exports){
+},{"backbone":83,"jquery":37,"pigeon":99,"q":105,"underscore":117}],107:[function(require,module,exports){
 (function (process){
 var Q = require('q');
 
@@ -28309,7 +28878,7 @@ var stateless = {
 
 module.exports = stateless;
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./server/backbone":105,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"q":104}],107:[function(require,module,exports){
+},{"./server/backbone":106,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"q":105}],108:[function(require,module,exports){
 var bind = Function.prototype.bind,
     slice = Array.prototype.slice,
     toString = Object.prototype.toString;
@@ -28530,10 +29099,10 @@ exports.toArray = function (object, begin, end) {
 	});
 };
 
-},{}],108:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 module.exports = require('./lib/transparency');
 
-},{"./lib/transparency":115}],109:[function(require,module,exports){
+},{"./lib/transparency":116}],110:[function(require,module,exports){
 var Attribute, AttributeFactory, BooleanAttribute, Class, Html, Text, helpers, _,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -28695,7 +29264,7 @@ Class = (function(_super) {
 
 })(Attribute);
 
-},{"../lib/lodash":114,"./helpers":112}],110:[function(require,module,exports){
+},{"../lib/lodash":115,"./helpers":113}],111:[function(require,module,exports){
 var Context, Instance, after, before, chainable, cloneNode, _ref;
 
 _ref = require('./helpers'), before = _ref.before, after = _ref.after, chainable = _ref.chainable, cloneNode = _ref.cloneNode;
@@ -28755,7 +29324,7 @@ module.exports = Context = (function() {
 
 })();
 
-},{"./helpers":112,"./instance":113}],111:[function(require,module,exports){
+},{"./helpers":113,"./instance":114}],112:[function(require,module,exports){
 var AttributeFactory, Checkbox, Element, ElementFactory, Input, Radio, Select, TextArea, VoidElement, helpers, _, _ref, _ref1, _ref2, _ref3, _ref4,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -28973,7 +29542,7 @@ Radio = (function(_super) {
 
 })(Checkbox);
 
-},{"../lib/lodash.js":114,"./attributeFactory":109,"./helpers":112}],112:[function(require,module,exports){
+},{"../lib/lodash.js":115,"./attributeFactory":110,"./helpers":113}],113:[function(require,module,exports){
 var ElementFactory, expando, html5Clone, _getElements;
 
 ElementFactory = require('./elementFactory');
@@ -29070,7 +29639,7 @@ exports.consoleLogger = function() {
 
 exports.log = exports.nullLogger;
 
-},{"./elementFactory":111}],113:[function(require,module,exports){
+},{"./elementFactory":112}],114:[function(require,module,exports){
 var Instance, chainable, helpers, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -29232,7 +29801,7 @@ module.exports = Instance = (function() {
 
 })();
 
-},{"../lib/lodash.js":114,"./helpers":112}],114:[function(require,module,exports){
+},{"../lib/lodash.js":115,"./helpers":113}],115:[function(require,module,exports){
  var _ = {};
 
 _.toString = Object.prototype.toString;
@@ -29273,7 +29842,7 @@ _.isBoolean = function(obj) {
 
 module.exports = _;
 
-},{}],115:[function(require,module,exports){
+},{}],116:[function(require,module,exports){
 var $, Context, Transparency, helpers, _,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -29349,7 +29918,7 @@ if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
   });
 }
 
-},{"../lib/lodash.js":114,"./context":110,"./helpers":112}],116:[function(require,module,exports){
+},{"../lib/lodash.js":115,"./context":111,"./helpers":113}],117:[function(require,module,exports){
 //     Underscore.js 1.5.2
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -30627,7 +31196,16 @@ if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
 
 }).call(this);
 
-},{}],117:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
+var backbone = require('backbone');
+var Artist = require('./../model/Artist');
+
+var Artists = backbone.Collection.extend({
+	model:Artist
+});
+
+module.exports = Artists;
+},{"./../model/Artist":120,"backbone":1}],119:[function(require,module,exports){
 var backbone = require('backbone');
 var Station = require('./../model/Station');
 
@@ -30637,7 +31215,13 @@ var Stations = backbone.Collection.extend({
 
 
 module.exports = Stations;
-},{"./../model/Station":118,"backbone":1}],118:[function(require,module,exports){
+},{"./../model/Station":121,"backbone":1}],120:[function(require,module,exports){
+var backbone = require('backbone');
+
+var Artist = backbone.Model.extend({});
+
+module.exports = Artist;
+},{"backbone":1}],121:[function(require,module,exports){
 var Track = require('./Track');
 var levelsfm = require('./../services/levelsfm');
 var backbone = require('backbone');
@@ -30722,7 +31306,7 @@ Station.create = function (user, artistPermalink) {
 
 
 module.exports = Station;
-},{"./../services/levelsfm":123,"./Track":119,"backbone":1,"soundcloud":81}],119:[function(require,module,exports){
+},{"./../services/levelsfm":126,"./Track":122,"backbone":1,"soundcloud":82}],122:[function(require,module,exports){
 var pigeon = require('pigeon');
 var backbone = require('backbone');
 
@@ -30730,7 +31314,7 @@ var Track = backbone.Model.extend();
 
 
 module.exports = Track
-},{"backbone":1,"pigeon":53}],120:[function(require,module,exports){
+},{"backbone":1,"pigeon":54}],123:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var backbone = require('backbone');
 var q = require('q');
@@ -30860,7 +31444,7 @@ Object.defineProperties(Tuner.prototype, {
 
 
 module.exports = Tuner;
-},{"backbone":1,"events":12,"q":59}],121:[function(require,module,exports){
+},{"backbone":1,"events":12,"q":60}],124:[function(require,module,exports){
 if (typeof document === 'undefined') {
 	return;
 }
@@ -30996,7 +31580,7 @@ if (userData) {
 
 
 module.exports = User;
-},{"./../collection/Stations":117,"./../services/levelsfm":123,"backbone":1,"jakobmattsson-client-cookies":36}],122:[function(require,module,exports){
+},{"./../collection/Stations":119,"./../services/levelsfm":126,"backbone":1,"jakobmattsson-client-cookies":36}],125:[function(require,module,exports){
 (function (process,__dirname){
 var stateless = require('stateless');
 var Q = require('q');
@@ -31013,7 +31597,6 @@ backbone.ajax = function () {
 	return jquery.ajax.apply(jquery, arguments);
 }
 backbone.$ = jquery;
-
 
 
 function showRadioView (user) {
@@ -31115,9 +31698,9 @@ stateless
 	.activate();
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
-},{"./model/Station":118,"./model/User":121,"./ui/user/UserNameLabel":139,"./views/user/Login":140,"./views/user/Radio":141,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":59,"stateless":106}],123:[function(require,module,exports){
+},{"./model/Station":121,"./model/User":124,"./ui/user/UserNameLabel":141,"./views/user/Login":145,"./views/user/Radio":146,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],126:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -31139,7 +31722,7 @@ exports.del = function (path, params) {
 exports.post = function (path, params) {
 	return fetch(path, params, 'post');
 }
-},{"pigeon":53}],124:[function(require,module,exports){
+},{"pigeon":54}],127:[function(require,module,exports){
 var soundcloud = require('soundcloud').soundcloud;
 
 var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
@@ -31153,7 +31736,7 @@ exports.get = soundcloud.api;
 exports.buildStreamUrl = function (track) {
 	return track.get('stream_url') + '?client_id=' + soundcloudClientId;
 }
-},{"soundcloud":81}],125:[function(require,module,exports){
+},{"soundcloud":82}],128:[function(require,module,exports){
 var pigeon = require('pigeon');
 
 module.exports = {
@@ -31163,7 +31746,7 @@ module.exports = {
 	}
 
 }
-},{"pigeon":53}],126:[function(require,module,exports){
+},{"pigeon":54}],129:[function(require,module,exports){
 function PlayPauseButton (element, player) {
 	this._element = element;
 	this._player = player;
@@ -31198,7 +31781,7 @@ PlayPauseButton.prototype = {
 
 
 module.exports = PlayPauseButton;
-},{}],127:[function(require,module,exports){
+},{}],130:[function(require,module,exports){
 var soundcloud = require('./../services/soundcloud');
 var transparency = require('transparency');
 var jquery = require('jquery');
@@ -31283,7 +31866,7 @@ Object.defineProperties(Player.prototype, {
 });
 
 module.exports = Player;
-},{"./../services/soundcloud":124,"events":12,"jquery":37,"transparency":108}],128:[function(require,module,exports){
+},{"./../services/soundcloud":127,"events":12,"jquery":37,"transparency":109}],131:[function(require,module,exports){
 var transparency = require('transparency');
 var jquery = require('jquery');
 
@@ -31339,7 +31922,7 @@ Progress.prototype = {
 
 
 module.exports = Progress;
-},{"jquery":37,"transparency":108}],129:[function(require,module,exports){
+},{"jquery":37,"transparency":109}],132:[function(require,module,exports){
 function SkipButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -31357,47 +31940,7 @@ SkipButton.prototype = {
 
 
 module.exports = SkipButton;
-},{}],130:[function(require,module,exports){
-var Station = require('./../model/Station');
-var EventEmitter = require('events').EventEmitter;
-
-function StationForm (textField, submitButton) {
-	this._textField = textField;
-	this._submitButton = submitButton;
-	this._user = null;
-
-	submitButton.addEventListener('click', this.onButtonClick.bind(this));
-}
-
-StationForm.prototype = new EventEmitter();
-
-StationForm.prototype.onButtonClick = function (evt) {
-	evt.preventDefault();
-	var permalink = this._textField.value;
-	Station.create(this._user, permalink)
-		.then(function (station) {
-			this.emit('station_create', {
-				station:station
-			});
-		}.bind(this));
-}
-
-
-Object.defineProperties(StationForm.prototype, {
-	user:{
-		get:function () {
-			return this._user;
-		},
-
-		set:function (user) {
-			this._user = user;
-		}
-	}
-});
-
-
-module.exports = StationForm;
-},{"./../model/Station":118,"events":12}],131:[function(require,module,exports){
+},{}],133:[function(require,module,exports){
 var jquery = require('jquery');
 
 function StationList (element, tuner) {
@@ -31447,7 +31990,7 @@ StationList.prototype = {
 };
 
 module.exports = StationList;
-},{"jquery":37}],132:[function(require,module,exports){
+},{"jquery":37}],134:[function(require,module,exports){
 var transparency = require('transparency');
 var soundcloud = require('soundcloud').soundcloud;
 
@@ -31499,7 +32042,7 @@ TrackMeta.prototype = {
 };
 
 module.exports = TrackMeta;
-},{"soundcloud":81,"transparency":108}],133:[function(require,module,exports){
+},{"soundcloud":82,"transparency":109}],135:[function(require,module,exports){
 var transparency = require('transparency');
 
 function Time (element, player) {
@@ -31571,7 +32114,7 @@ Time.prototype = {
 };
 
 module.exports = Time;
-},{"transparency":108}],134:[function(require,module,exports){
+},{"transparency":109}],136:[function(require,module,exports){
 var PlayPauseButton = require('./PlayPauseButton');
 var Progress = require('./Progress');
 var Time = require('./TrackTime');
@@ -31606,7 +32149,7 @@ TunerFaceplate.prototype = {
 };
 
 module.exports = TunerFaceplate;
-},{"./PlayPauseButton":126,"./Progress":128,"./SkipButton":129,"./StationList":131,"./TrackMeta":132,"./TrackTime":133,"./VoteDownButton":135,"./VoteUpButton":136}],135:[function(require,module,exports){
+},{"./PlayPauseButton":129,"./Progress":131,"./SkipButton":132,"./StationList":133,"./TrackMeta":134,"./TrackTime":135,"./VoteDownButton":137,"./VoteUpButton":138}],137:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -31626,7 +32169,7 @@ VoteUpButton.prototype = {
 
 
 module.exports = VoteUpButton;
-},{}],136:[function(require,module,exports){
+},{}],138:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -31643,7 +32186,7 @@ VoteUpButton.prototype = {
 };
 
 module.exports = VoteUpButton;
-},{}],137:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 var User = require('./../../model/User');
 var EventEmitter = require('events').EventEmitter;
 
@@ -31674,7 +32217,7 @@ proto._onSubmit = function (evt) {
 }
 
 module.exports = LoginForm;
-},{"./../../model/User":121,"events":12}],138:[function(require,module,exports){
+},{"./../../model/User":124,"events":12}],140:[function(require,module,exports){
 var User = require('./../../model/User');
 var EventEmitter = require('events').EventEmitter;
 
@@ -31714,7 +32257,7 @@ proto._onSubmit = function (evt) {
 }
 
 module.exports = RegisterForm;
-},{"./../../model/User":121,"events":12}],139:[function(require,module,exports){
+},{"./../../model/User":124,"events":12}],141:[function(require,module,exports){
 function UserNameLabel (el, user) {
 	this._user = user;
 	this._el = el;
@@ -31732,7 +32275,226 @@ UserNameLabel.prototype = {
 }
 
 module.exports = UserNameLabel;
-},{}],140:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
+var backbone = require('backbone');
+var mustache = require('mustache');
+var template = require('./../../services/templates');
+var q = require('q');
+
+var ArtistList = backbone.View.extend({
+
+	getTemplateString:function () {
+		return template.get('artist/_list');
+	},
+
+	tagName: 'ul',
+
+	className: 'artist-list',
+
+	initialize: function () {
+		this.listenTo(this.model, 'reset', this.onReset);
+	},
+
+	onReset: function () {
+		this.drawAll();
+	},
+
+	drawAll: function () {
+		this.$el.empty();
+		this.getTemplateString()
+			.then(function (str) {
+				var render = mustache.render(str, this.model);
+				this.$el.html(render);
+
+			}.bind(this));
+		
+	},
+
+	render: function () {
+		this.drawAll();
+		
+
+	}
+
+});
+
+module.exports = ArtistList;
+},{"./../../services/templates":128,"backbone":1,"mustache":38,"q":60}],143:[function(require,module,exports){
+var soundcloud = require('./../../services/soundcloud');
+var EventEmitter = require('events').EventEmitter;
+var Artist = require('./../../model/Artist');
+var backbone = require('backbone');
+
+
+var ArtistSearchField = backbone.View.extend({
+
+	tagName:'input',
+
+	className:'name-input',
+
+	events: {
+		'keyup' : 'onKeyUp'
+	},
+
+	attributes:{
+		type:'text',
+		placeholder:'Create new station'
+	},
+
+	onKeyUp: function () {
+		var element = this.el;
+
+		window.clearTimeout(this._keyUpTimeout);
+		this._keyUpTimeout = window.setTimeout(function () {
+
+			soundcloud.get('/users', {
+				q:element.value
+			})
+
+			.then(function (results) {
+				var spliced = results.splice(0, 5);
+				this.model.reset(spliced);
+			}.bind(this))
+
+			.fail(function (e) {
+				console.log(e.stack);
+			});
+
+		}.bind(this), 400);
+	}
+
+});
+
+
+/*
+function ArtistSearchField (el) {
+	this._element = el;
+	this._keyUpTimeout;
+};
+
+var proto = ArtistSearchField.prototype = Object.create(EventEmitter.prototype);
+
+proto.value = function () {
+	return this._element.value;
+};
+
+proto.onKeyUp = function () {
+	var element = this._element;
+
+	window.clearTimeout(this._keyUpTimeout);
+	this._keyUpTimeout = window.setTimeout(function () {
+
+		soundcloud.get('/users', {
+			q:element.value
+		})
+
+		.then(function (results) {
+
+			return results.map(function (result) {
+				return new Artist(result);
+			});
+		})
+
+		.then(this.emit.bind(this, 'results'))
+
+		.fail(function (e) {
+			console.log(e.stack);
+		});
+
+	}.bind(this), 400);
+	
+};
+*/
+
+module.exports = ArtistSearchField;
+},{"./../../model/Artist":120,"./../../services/soundcloud":127,"backbone":1,"events":12}],144:[function(require,module,exports){
+var Station = require('./../../model/Station');
+var EventEmitter = require('events').EventEmitter;
+var ArtistsCollection = require('./../../collection/Artists');
+var ArtistSearchInputView = require('./../artist/SearchInput');
+var ArtistListView = require('./../artist/List');
+var backbone = require('backbone');
+var templates = require('./../../services/templates');
+var mustache = require('mustache');
+
+
+var StationCreateForm = backbone.View.extend({
+
+	initialize: function () {
+
+	},
+
+	tagName:'form',
+
+	className:'station-form',
+
+	events: {
+		'blur .name-input' : 'inputBlur',
+		'click .autocomplete-results .artist' : 'onArtistClick',
+		'submit' : 'onSubmit'
+	},
+
+	inputBlur: function () {
+		console.log('blur');
+	},
+
+	onArtistClick: function (evt) {
+		var permalink = evt.currentTarget.getAttribute('data-permalink');
+
+		this._autoCompleteResults.reset();
+
+		Station.create(this._user, permalink)
+			.then(function (station) {
+				this.trigger('station_create', {
+					station:station
+				});
+			}.bind(this));
+	},
+
+	render: function () {
+		templates.get('station/_form')
+			.then(function (htmlString) {
+				this.$el.html(mustache.render(htmlString, {}));
+				this._autoCompleteResults = new ArtistsCollection();
+				var autoCompleteResultsEl = this.el.querySelector('.autocomplete-results');
+
+				this._input = new ArtistSearchInputView({
+					model:this._autoCompleteResults
+				});
+
+				this._input.$el.insertAfter(autoCompleteResultsEl);
+				
+				this._autoCompleteResultList = new ArtistListView({
+					model:this._autoCompleteResults
+				});
+
+				this._autoCompleteResultList.$el.appendTo(autoCompleteResultsEl);
+				this._autoCompleteResultList.render();
+
+			}.bind(this))
+
+			.fail(function (e) {
+				console.log(e.stack);
+			})
+	}
+
+});
+
+
+Object.defineProperties(StationCreateForm.prototype, {
+	user:{
+		get:function () {
+			return this._user;
+		},
+
+		set:function (user) {
+			this._user = user;
+		}
+	}
+});
+
+module.exports = StationCreateForm;
+},{"./../../collection/Artists":118,"./../../model/Station":121,"./../../services/templates":128,"./../artist/List":142,"./../artist/SearchInput":143,"backbone":1,"events":12,"mustache":38}],145:[function(require,module,exports){
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var LoginForm = require('./../../ui/user/LoginForm');
@@ -31775,14 +32537,15 @@ var Login = backbone.View.extend({
 
 module.exports = Login;
 
-},{"./../../services/templates":125,"./../../ui/user/LoginForm":137,"./../../ui/user/RegisterForm":138,"backbone":1,"jquery":37}],141:[function(require,module,exports){
-var StationForm = require('./../../ui/StationForm');
+},{"./../../services/templates":128,"./../../ui/user/LoginForm":139,"./../../ui/user/RegisterForm":140,"backbone":1,"jquery":37}],146:[function(require,module,exports){
+var StationForm = require('./../../views/station/CreateForm');
 var Tuner = require('./../../model/Tuner');
 var TunerFaceplate = require('./../../ui/TunerFaceplate');
 var Player = require('./../../ui/Player');
 var backbone = require('backbone');
 var jquery = require('jquery');
 var templates = require('./../../services/templates');
+var User = require('./../../model/User');
 
 var Radio = backbone.View.extend({
 
@@ -31798,14 +32561,18 @@ var Radio = backbone.View.extend({
 				var player = new Player(view.el.querySelector('.audio'));
 				var tuner = new Tuner(player);
 				var faceplate = new TunerFaceplate(view.el, tuner);
-				var stationForm = new StationForm(view.el.querySelector('#stationcreateartist'), view.el.querySelector('#stationcreate'));
-				stationForm.user = view._user;
+
+				var stationForm = new StationForm();
+				stationForm.user = User.current();
+				stationForm.$el.insertBefore(view.el.querySelector('#player'));
+				stationForm.render();
 				
 
 				stationForm.on('station_create', function (evt) {
 					tuner.stations.add(evt.station);
 				});
 
+				
 				jquery(document).on('click', '.station-title', function (evt) {
 					var station = view._user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
 					tuner.station = station;
@@ -31816,7 +32583,6 @@ var Radio = backbone.View.extend({
 					var station = view._user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
 					station.destroy();
 				});
-
 				
 				return view._user.stations.fetch().then(function (stations) {
 					var station;
@@ -31843,4 +32609,4 @@ var Radio = backbone.View.extend({
 });
 
 module.exports = Radio;
-},{"./../../model/Tuner":120,"./../../services/templates":125,"./../../ui/Player":127,"./../../ui/StationForm":130,"./../../ui/TunerFaceplate":134,"backbone":1,"jquery":37}]},{},[122])
+},{"./../../model/Tuner":123,"./../../model/User":124,"./../../services/templates":128,"./../../ui/Player":130,"./../../ui/TunerFaceplate":136,"./../../views/station/CreateForm":144,"backbone":1,"jquery":37}]},{},[125])
