@@ -31700,7 +31700,7 @@ stateless
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
 },{"./model/Station":121,"./model/User":124,"./ui/user/UserNameLabel":141,"./views/user/Login":145,"./views/user/Radio":146,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],126:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -32341,10 +32341,15 @@ var ArtistSearchField = backbone.View.extend({
 		placeholder:'Create new station'
 	},
 
-	onKeyUp: function () {
+	onKeyUp: function (evt) {
 		var element = this.el;
 
 		window.clearTimeout(this._keyUpTimeout);
+
+		if (evt.keyCode === 27) {
+			return;
+		}
+
 		this._keyUpTimeout = window.setTimeout(function () {
 
 			soundcloud.get('/users', {
@@ -32416,32 +32421,64 @@ var ArtistListView = require('./../artist/List');
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var mustache = require('mustache');
+var jquery = require('jquery');
 
 
 var StationCreateForm = backbone.View.extend({
 
 	initialize: function () {
+		jquery(document.body).on('keyup', function (e) {
+			if (e.keyCode === 27) {
+				this.hideAutocompleteResults();
+			}
+		}.bind(this));
 
+		
 	},
 
 	tagName:'form',
 
-	className:'station-form',
+	className:'station-form clearfix',
 
 	events: {
-		'blur .name-input' : 'inputBlur',
+		'focus .name-input' : 'inputFocus',
 		'click .autocomplete-results .artist' : 'onArtistClick',
 		'submit' : 'onSubmit'
 	},
 
-	inputBlur: function () {
-		console.log('blur');
+	_resetAutocompleteResults: function () {
+		this._autoCompleteResults.reset();
+	},
+
+	_hideToClick: function (e) {
+		if (!jquery(e.target).is('.station-form, .station-form *')) {
+			this.hideAutocompleteResults();
+		}
+	},
+
+	hideAutocompleteResults: function () {
+		this._autoCompleteResultList.$el.addClass('hidden');
+		jquery(document.body).off('click', this._boundHideToClick);
+	},
+
+	showAutocompleteResults: function () {
+		this._autoCompleteResultList.$el.removeClass('hidden');
+
+		if (!this._boundHideToClick) {
+			this._boundHideToClick = this._hideToClick.bind(this);
+		}
+
+		jquery(document.body).on('click', this._boundHideToClick);
+	},
+
+	inputFocus: function () {
+		this.showAutocompleteResults();
 	},
 
 	onArtistClick: function (evt) {
 		var permalink = evt.currentTarget.getAttribute('data-permalink');
 
-		this._autoCompleteResults.reset();
+		this.hideAutocompleteResults();
 
 		Station.create(this._user, permalink)
 			.then(function (station) {
@@ -32494,7 +32531,7 @@ Object.defineProperties(StationCreateForm.prototype, {
 });
 
 module.exports = StationCreateForm;
-},{"./../../collection/Artists":118,"./../../model/Station":121,"./../../services/templates":128,"./../artist/List":142,"./../artist/SearchInput":143,"backbone":1,"events":12,"mustache":38}],145:[function(require,module,exports){
+},{"./../../collection/Artists":118,"./../../model/Station":121,"./../../services/templates":128,"./../artist/List":142,"./../artist/SearchInput":143,"backbone":1,"events":12,"jquery":37,"mustache":38}],145:[function(require,module,exports){
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var LoginForm = require('./../../ui/user/LoginForm');
