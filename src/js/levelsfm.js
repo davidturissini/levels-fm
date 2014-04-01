@@ -31700,7 +31700,7 @@ stateless
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
 },{"./model/Station":121,"./model/User":124,"./ui/user/UserNameLabel":141,"./views/user/Login":145,"./views/user/Radio":146,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],126:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -32341,19 +32341,25 @@ var ArtistSearchField = backbone.View.extend({
 		placeholder:'Create new station'
 	},
 
+	reset: function () {
+		this.el.setAttribute('value', '');
+		this.model.reset();
+	},
+
 	onKeyUp: function (evt) {
 		var element = this.el;
+		var textValue = element.value;
 
 		window.clearTimeout(this._keyUpTimeout);
 
-		if (evt.keyCode === 27) {
+		if (evt.keyCode === 27 || textValue.length < 3) {
 			return;
 		}
 
 		this._keyUpTimeout = window.setTimeout(function () {
 
 			soundcloud.get('/users', {
-				q:element.value
+				q:textValue
 			})
 
 			.then(function (results) {

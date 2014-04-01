@@ -19,19 +19,25 @@ var ArtistSearchField = backbone.View.extend({
 		placeholder:'Create new station'
 	},
 
+	reset: function () {
+		this.el.setAttribute('value', '');
+		this.model.reset();
+	},
+
 	onKeyUp: function (evt) {
 		var element = this.el;
+		var textValue = element.value;
 
 		window.clearTimeout(this._keyUpTimeout);
 
-		if (evt.keyCode === 27) {
+		if (evt.keyCode === 27 || textValue.length < 3) {
 			return;
 		}
 
 		this._keyUpTimeout = window.setTimeout(function () {
 
 			soundcloud.get('/users', {
-				q:element.value
+				q:textValue
 			})
 
 			.then(function (results) {
