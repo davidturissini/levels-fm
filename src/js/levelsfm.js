@@ -31747,6 +31747,8 @@ module.exports = {
 
 }
 },{"pigeon":54}],129:[function(require,module,exports){
+var jquery = require('jquery');
+
 function PlayPauseButton (element, player) {
 	this._element = element;
 	this._player = player;
@@ -31769,19 +31771,27 @@ PlayPauseButton.prototype = {
 		}
 	},
 
+	_toggleClassName: function () {
+		if (this._player.paused === true) {
+			jquery(this._element).removeClass('playing');
+		} else {
+			jquery(this._element).addClass('playing');
+		}
+	},
+
 	_onPlay: function (evt) {
-		this._element.innerHTML = 'Pause';
+		this._toggleClassName();
 	},
 
 	_onPause: function (evt) {
-		this._element.innerHTML = 'Play';
+		this._toggleClassName();
 	}
 
 };
 
 
 module.exports = PlayPauseButton;
-},{}],130:[function(require,module,exports){
+},{"jquery":37}],130:[function(require,module,exports){
 var soundcloud = require('./../services/soundcloud');
 var transparency = require('transparency');
 var jquery = require('jquery');

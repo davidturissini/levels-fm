@@ -1,3 +1,5 @@
+var jquery = require('jquery');
+
 function PlayPauseButton (element, player) {
 	this._element = element;
 	this._player = player;
@@ -20,12 +22,20 @@ PlayPauseButton.prototype = {
 		}
 	},
 
+	_toggleClassName: function () {
+		if (this._player.paused === true) {
+			jquery(this._element).removeClass('playing');
+		} else {
+			jquery(this._element).addClass('playing');
+		}
+	},
+
 	_onPlay: function (evt) {
-		this._element.innerHTML = 'Pause';
+		this._toggleClassName();
 	},
 
 	_onPause: function (evt) {
-		this._element.innerHTML = 'Play';
+		this._toggleClassName();
 	}
 
 };

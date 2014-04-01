@@ -82,21 +82,32 @@ a:hover {
 */
 
 .player {
-	padding:0;
+	position:fixed;
+	left:0;
+	right:0;
+	bottom:0;
+	z-index:100;
+	padding:10px;
 	vertical-align:middle;
-	border-bottom:2px solid #ccc;
-	background:#000;
+	text-align:center;
+	border-top:1px solid rgba(47, 103, 178, 1);
+	font-size:11px;
 }
 
 .player button {
 	display:inline-block;
-	height:50px;
-	width:50px;
-	border-radius:25px;
+	position:relative;
+	height:2.73em;
+	width:2.73em;
+	border-radius:2.27em;
 	border:0;
 	outline:0;
 	white-space:nowrap;
 	cursor:pointer;
+	background:transparent;
+	border:1px solid rgba(47, 103, 178, 1);
+	vertical-align:middle;
+	font-size:inherit;
 }
 
 .player a {
@@ -108,11 +119,69 @@ a:hover {
 	text-decoration:underline;
 }
 
+.play-pause-button {
+	position:relative;
+	z-index:10;
+}
+
+.play-pause-button:after {
+	content:'';
+	display:block;
+	position:absolute;
+	left:50%;
+	top:50%;
+	z-index:100;
+	height:0;
+	width:0;
+	border:0.8em solid transparent;
+	border-left:0.8em solid rgba(47, 103, 178, 1);
+	-webkit-transform:translateX(-16%) translateY(-50%);
+}
+
+.play-pause-button.playing:after {
+	content:'';
+	width:0.4em;
+	height:1.2em;
+	border-top:0;
+	border-bottom:0;
+	border-left:0.4em solid rgba(47, 103, 178, 1);
+	border-right:0.4em solid rgba(47, 103, 178, 1);
+	-webkit-transform:translateX(-50%) translateY(-50%);
+}
+
+
+.skip-button:after {
+	content:'';
+	position:absolute;
+	left:50%;
+	top:50%;
+	z-index:100;
+	height:0;
+	width:0;
+	border:.9em solid transparent;
+	border-left:1.08em solid rgba(47, 103, 178, 1);
+	-webkit-transform:translateX(0%) translateY(-50%);
+}
+
+.skip-button:before {
+	content:'';
+	position:absolute;
+	left:50%;
+	top:50%;
+	z-index:100;
+	height:0;
+	width:0;
+	border:.9em solid transparent;
+	border-left:1.08em solid rgba(47, 103, 178, 1);
+	-webkit-transform:translateX(-30%) translateY(-50%);
+}
+
+
 .trackmeta {
 	position:relative;
 	z-index:10;
 	padding:10px;
-	background:rgba(0, 0, 0, 0.4);
+	background:#000;
 	color:#fff;
 	font-size:1.2em;
 }
@@ -131,16 +200,19 @@ a:hover {
 
 
 .progress {
-	background:rgba(47, 103, 178, 1);
 	display:inline-block;
 	position:relative;
-	margin:0;
+	margin:0 10px;
+	width:20em;
+	background:rgba(47, 103, 178, 1);
 	vertical-align:middle;
+	cursor:pointer;
 }
 
 
 .progress .waveform {
 	width:100%;
+	height:auto;
 }
 
 .progress .overlay {
@@ -156,11 +228,6 @@ a:hover {
 	-webkit-transition:-webkit-transform 200ms ease;
 }
 
-
-.buttons {
-	margin-bottom:20px;
-	text-align:center;
-}
 
 .stations-list {
 	padding:20px 30px;
