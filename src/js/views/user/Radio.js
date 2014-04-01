@@ -24,7 +24,7 @@ var Radio = backbone.View.extend({
 
 				var stationForm = new StationForm();
 				stationForm.user = User.current();
-				stationForm.$el.insertBefore(view.el.querySelector('#player'));
+				stationForm.$el.appendTo('.site-header');
 				stationForm.render();
 				
 

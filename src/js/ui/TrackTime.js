@@ -28,42 +28,27 @@ Time.prototype = {
 	},
 
 	_onTimeUpdate: function (evt) {
-		var time = this;
+		var currentTime = time._humanReadableTime(this._player.currentTime);
+		var duration;
 
-		transparency.render(this._element, {
-			currentTime:this._player.currentTime,
-			duration:this._player.track.get('duration')
-		}, {
+		if (typeof currentTime === 'number') {
+			currentTime = '00:00';
+		}
 
-			'currenttime':{
-				text: function () {
-					var currentTime = time._humanReadableTime(this.currentTime);
+		var minutes;
+		var seconds;
 
-					if (typeof currentTime === 'number') {
-						currentTime = '00:00';
-					}
+		minutes = Math.floor(this._player.track.get('duration') / 1000 / 60);
+		seconds = Math.round(this._player.track.get('duration') / 1000 - (minutes * 60));
+		if (seconds < 10) {
+			seconds = '0' + seconds;
+		}
 
-					return currentTime;
-				}
-			},
+		duration = minutes + ':' + seconds;
 
-			'duration':{
-				text: function () {
-					var minutes;
-					var seconds;
+		document.getElementById('now-playing-duration').innerHTML = duration;
+		document.getElementById('now-playing-currenttime').innerHTML = currentTime;
 
-					minutes = Math.floor(this.duration / 1000 / 60);
-					seconds = Math.round(this.duration / 1000 - (minutes * 60));
-					if (seconds < 10) {
-						seconds = '0' + seconds;
-					}
-
-					return minutes + ':' + seconds;
-
-				}
-			}
-
-		});
 	}
 
 };

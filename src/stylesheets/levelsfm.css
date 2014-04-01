@@ -19,7 +19,12 @@ a:hover {
 	clear: both;
 }
 
-.site-header .site-title {
+.site-header {
+	text-align:center;
+}
+
+.site-title {
+	float:left;
 	width:150px;
 	height:50px;
 	text-indent:-9999px;
@@ -110,13 +115,13 @@ a:hover {
 	font-size:inherit;
 }
 
-.player a {
-	color:#fff;
-	text-decoration:none;
+
+.player .currenttime {
+	margin-left:10px;
 }
 
-.player a:hover {
-	text-decoration:underline;
+.player .duration {
+	margin-right:10px;
 }
 
 .play-pause-button {
@@ -186,6 +191,15 @@ a:hover {
 	font-size:1.2em;
 }
 
+.trackmeta a {
+	color:#fff;
+	text-decoration:none;
+}
+
+.trackmeta a:hover {
+	text-decoration:underline;
+}
+
 .tracklink {
 	font-weight:bold;
 }
@@ -253,14 +267,14 @@ a:hover {
 }
 
 .station-form {
-	float:left;
+	display:inline-block;
 	position:relative;
 	z-index:100;
 	padding:20px 10px;
 }
 
 .station-form input[type=text] {
-	width:300px;
+	width:25em;
 }
 
 .station-form .artist-list {
@@ -272,6 +286,7 @@ a:hover {
 	border:1px solid #818181;
 	border-top:0;
 	border-bottom:0;
+	text-align:left;
 }
 
 .artist-list.hidden {
