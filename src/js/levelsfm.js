@@ -32083,7 +32083,7 @@ Time.prototype = {
 	},
 
 	_onTimeUpdate: function (evt) {
-		var currentTime = time._humanReadableTime(this._player.currentTime);
+		var currentTime = this._humanReadableTime(this._player.currentTime);
 		var duration;
 
 		if (typeof currentTime === 'number') {
