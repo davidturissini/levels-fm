@@ -1,3 +1,4 @@
+require('./utils/polyfills');
 var stateless = require('stateless');
 var Q = require('q');
 var Station = require('./model/Station');

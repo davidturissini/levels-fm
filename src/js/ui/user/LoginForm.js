@@ -22,7 +22,7 @@ proto.password = function () {
 
 proto._onSubmit = function (evt) {
 	var form = this;
-
+	
 	evt.preventDefault();
 	User.login(this.username(), this.password());
 }
