@@ -1,3 +1,7 @@
+if (typeof window === 'undefined') {
+    return;
+}
+
 // requestAnimationFrame
 (function() {
     var lastTime = 0;
