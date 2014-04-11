@@ -43,6 +43,22 @@ var Radio = backbone.View.extend({
 					var station = view._user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
 					station.destroy();
 				});
+
+				tuner.on('station:change', function (evt) {
+					var station = evt.station;
+					var active = view.el.querySelector('.station.active');
+
+					if (active) {
+						active.classList.remove('active');
+					}
+
+					
+					var stationEl = view.el.querySelector('.station[data-station_id="' + station.id + '"]');
+
+					if (stationEl) {
+						stationEl.classList.add('active');
+					}
+				});
 				
 				return view._user.stations.fetch().then(function (stations) {
 					var station;

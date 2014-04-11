@@ -88,6 +88,9 @@ Object.defineProperties(Tuner.prototype, {
 			this.__clearQueue();
 			this._station = station;
 			this.playNext();
+			this.emit('station:change', {
+				station:this._station
+			});
 		}
 	},
 

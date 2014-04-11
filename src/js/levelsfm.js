@@ -31245,6 +31245,9 @@ Object.defineProperties(Tuner.prototype, {
 			this.__clearQueue();
 			this._station = station;
 			this.playNext();
+			this.emit('station:change', {
+				station:this._station
+			});
 		}
 	},
 
@@ -31541,7 +31544,7 @@ stateless
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
 },{"./model/Station":120,"./model/User":123,"./ui/user/UserNameLabel":140,"./utils/polyfills":141,"./views/user/Login":145,"./views/user/Radio":146,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],125:[function(require,module,exports){
 var pigeon = require('pigeon');
-var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
+var domain = 'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
 var fetch = exports.get = function (path, params, method) {
 	method = method || 'get';
@@ -31808,6 +31811,7 @@ StationList.prototype = {
 
 	_appendStationUI: function (station) {
 		var stationEl = document.createElement('div');
+		stationEl.setAttribute('data-station_id', station.id);
 		stationEl.classList.add('station');
 		var title = document.createElement('h1');
 		title.innerHTML = station.get('title');
@@ -32539,6 +32543,22 @@ var Radio = backbone.View.extend({
 				jquery(document).on('click', '.station-delete', function (evt) {
 					var station = view._user.stations.get(evt.currentTarget.getAttribute('data-station_id'));
 					station.destroy();
+				});
+
+				tuner.on('station:change', function (evt) {
+					var station = evt.station;
+					var active = view.el.querySelector('.station.active');
+
+					if (active) {
+						active.classList.remove('active');
+					}
+
+					
+					var stationEl = view.el.querySelector('.station[data-station_id="' + station.id + '"]');
+
+					if (stationEl) {
+						stationEl.classList.add('active');
+					}
 				});
 				
 				return view._user.stations.fetch().then(function (stations) {

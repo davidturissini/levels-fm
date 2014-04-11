@@ -252,6 +252,10 @@ a:hover {
 	cursor:pointer;
 }
 
+.station.active {
+	background: #b1b1b1;
+}
+
 .station-title {
 	display:inline-block;
 	padding:5px;

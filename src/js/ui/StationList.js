@@ -14,6 +14,7 @@ StationList.prototype = {
 
 	_appendStationUI: function (station) {
 		var stationEl = document.createElement('div');
+		stationEl.setAttribute('data-station_id', station.id);
 		stationEl.classList.add('station');
 		var title = document.createElement('h1');
 		title.innerHTML = station.get('title');
