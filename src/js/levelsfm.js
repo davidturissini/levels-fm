@@ -1608,7 +1608,7 @@
 
 }));
 
-},{"underscore":117}],2:[function(require,module,exports){
+},{"underscore":116}],2:[function(require,module,exports){
 
 },{}],3:[function(require,module,exports){
 /**
@@ -1636,13 +1636,13 @@ Buffer.poolSize = 8192
 Buffer._useTypedArrays = (function () {
    // Detect if browser supports Typed Arrays. Supported browsers are IE 10+,
    // Firefox 4+, Chrome 7+, Safari 5.1+, Opera 11.6+, iOS 4.2+.
-  if (typeof Uint8Array === 'undefined' || typeof ArrayBuffer === 'undefined')
+  if (typeof Uint8Array !== 'function' || typeof ArrayBuffer !== 'function')
     return false
 
   // Does the browser support adding properties to `Uint8Array` instances? If
   // not, then that's the same as no `Uint8Array` support. We need to be able to
   // add all the node Buffer API methods.
-  // Relevant Firefox bug: https://bugzilla.mozilla.org/show_bug.cgi?id=695438
+  // Bug in Firefox 4-29, now fixed: https://bugzilla.mozilla.org/show_bug.cgi?id=695438
   try {
     var arr = new Uint8Array(0)
     arr.foo = function () { return 42 }
@@ -2700,8 +2700,7 @@ function decodeUtf8Char (str) {
  */
 function verifuint (value, max) {
   assert(typeof value === 'number', 'cannot write a non-number as a number')
-  assert(value >= 0,
-      'specified a negative value for writing an unsigned value')
+  assert(value >= 0, 'specified a negative value for writing an unsigned value')
   assert(value <= max, 'value is larger than maximum value for type')
   assert(Math.floor(value) === value, 'value has a fractional component')
 }
@@ -4351,6 +4350,13 @@ process.browser = true;
 process.env = {};
 process.argv = [];
 
+function noop() {}
+
+process.on = noop;
+process.once = noop;
+process.off = noop;
+process.emit = noop;
+
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
 }
@@ -5483,7 +5489,60 @@ Stream.prototype.pipe = function(dest, options) {
 };
 
 },{"./duplex.js":25,"./passthrough.js":28,"./readable.js":29,"./transform.js":30,"./writable.js":31,"events":12,"inherits":18}],27:[function(require,module,exports){
-module.exports=require(19)
+// shim for using process in browser
+
+var process = module.exports = {};
+
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
+    }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            var source = ev.source;
+            if ((source === window || source === null) && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
 },{}],28:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -20917,7 +20976,7 @@ function createConnectionSSL (port, host, options) {
   return tls.connect(options);
 }
 
-},{"http":13,"https":17,"net":2,"tls":108,"util":35}],49:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":2,"util":35}],49:[function(require,module,exports){
 module.exports = stringify;
 
 function getSerialize (fn, decycle) {
@@ -24681,7 +24740,7 @@ module.exports=require(46)
 module.exports=require(47)
 },{}],69:[function(require,module,exports){
 module.exports=require(48)
-},{"http":13,"https":17,"net":2,"tls":108,"util":35}],70:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":2,"util":35}],70:[function(require,module,exports){
 module.exports=require(49)
 },{}],71:[function(require,module,exports){
 (function (process,__dirname){
@@ -24897,7 +24956,7 @@ var soundcloud = {
 
 
 exports.soundcloud = soundcloud;
-},{"pigeon":75,"q":81,"underscore":117}],83:[function(require,module,exports){
+},{"pigeon":75,"q":81,"underscore":116}],83:[function(require,module,exports){
 //     Backbone.js 1.1.0
 
 //     (c) 2010-2011 Jeremy Ashkenas, DocumentCloud Inc.
@@ -26480,7 +26539,7 @@ exports.soundcloud = soundcloud;
 
 }).call(this);
 
-},{"underscore":117}],84:[function(require,module,exports){
+},{"underscore":116}],84:[function(require,module,exports){
 module.exports=require(39)
 },{"type-of":85}],85:[function(require,module,exports){
 module.exports=require(40)
@@ -26500,7 +26559,7 @@ module.exports=require(46)
 module.exports=require(47)
 },{}],93:[function(require,module,exports){
 module.exports=require(48)
-},{"http":13,"https":17,"net":2,"tls":108,"util":35}],94:[function(require,module,exports){
+},{"http":13,"https":17,"net":2,"tls":2,"util":35}],94:[function(require,module,exports){
 module.exports=require(49)
 },{}],95:[function(require,module,exports){
 (function (process,__dirname){
@@ -28675,6 +28734,7 @@ function renderHTML (params, documentFragment) {
 
 
 function onRouteChange () {
+
 	if (bodyEl.hasClass('loading') === false) {
 		bodyEl.addClass('loading');
 	}
@@ -28727,7 +28787,6 @@ var backboneServer = {
 		var promise = defer.promise;
 
 		if (previousLayout !== layoutPath) {
-
 			promise = pigeon.get(layoutPath);
 		} else {
 			defer.resolve();
@@ -28743,7 +28802,6 @@ var backboneServer = {
 
 		var defer = Q.defer();
 		var promise = defer.promise;
-
 
 		if (templateCache[templatePath] === undefined) {
 			promise = pigeon.get(templatePath)
@@ -28761,11 +28819,7 @@ var backboneServer = {
 
 					return fragment;
 
-				})
-
-				.fail(function (e) {
-					console.log(e.stack);
-				})
+				});
 
 		} else {
 
@@ -28819,13 +28873,12 @@ var backboneServer = {
 			pushState:true
 		});
 
-
 	}
 
 }
 
 module.exports = backboneServer;
-},{"backbone":83,"jquery":37,"pigeon":99,"q":105,"underscore":117}],107:[function(require,module,exports){
+},{"backbone":83,"jquery":37,"pigeon":99,"q":105,"underscore":116}],107:[function(require,module,exports){
 (function (process){
 var Q = require('q');
 
@@ -28885,230 +28938,9 @@ var stateless = {
 module.exports = stateless;
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
 },{"./server/backbone":106,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"q":105}],108:[function(require,module,exports){
-var bind = Function.prototype.bind,
-    slice = Array.prototype.slice,
-    toString = Object.prototype.toString;
-
-exports.bind = function (func, that) {
-	var args = slice.call(arguments, 2);
-
-	if (bind) {
-		args.unshift(that);
-
-		return bind.apply(func, args);
-	}
-
-	return function () {
-		return func.apply(that, args.concat(slice.call(arguments)));
-	};
-}
-
-exports.slice = function (object, begin, end) {
-	return slice.call(object, begin, end);
-};
-
-exports.toString = function (object) {
-	return toString.call(object);
-};
-
-
-exports.isNull = nativeTypeChecker('Null');
-exports.isDate = nativeTypeChecker('Date');
-exports.isMath = nativeTypeChecker('Math');
-exports.isJSON = nativeTypeChecker('JSON');
-exports.isError = nativeTypeChecker('Error');
-exports.isArray = Array.isArray || nativeTypeChecker('Array');
-exports.isObject = nativeTypeChecker('Object');
-exports.isRegExp = nativeTypeChecker('RegExp');
-exports.isNumber = nativeTypeChecker('Number');
-exports.isString = nativeTypeChecker('String');
-exports.isBoolean = nativeTypeChecker('Boolean');
-exports.isFunction = nativeTypeChecker('Function');
-exports.isArguments = nativeTypeChecker('Arguments');
-exports.isUndefined = nativeTypeChecker('Undefined');
-
-function nativeTypeChecker (type) {
-	type = '[object ' + type + ']';
-
-	return function (object) {return toString.call(object) === type;};
-}
-
-
-exports.isValid = function (object) {
-	return !exports.isInvalid(object);
-}
-
-exports.isInvalid = function (object) {
-	return exports.isNull(object) || exports.isUndefined(object);
-}
-
-
-exports.isImmutable = function (object) {
-	return !exports.isMutable(object);
-};
-
-exports.isMutable = function (object) {
-	return object &&
-		!exports.isNumber(object) &&
-		!exports.isString(object) &&
-		!exports.isBoolean(object);
-};
-
-
-exports.isEnumerable = function (object) {
-	if (!object) return false;
-
-	if (exports.isNumber(object)) return exports.isInteger(object);
-
-	if (exports.isInteger(object.length)) return object.length >= 0;
-
-	return exports.isEnumerableObject(object);
-};
-
-exports.isEnumerableObject = function (object) {
-	for (var _ in object) return true;
-
-	return false;
-};
-
-exports.isEmpty = function (object) {
-	return exports.isObject(object) ?
-		!exports.isEnumerableObject(object) :
-		!exports.isEnumerable(object);
-}
-
-
-exports.isFiniteNumber = function (number) {
-	return exports.isNumber(number) && isFinite(number);
-};
-
-exports.isInteger = function (number) {
-	return exports.isFiniteNumber(number) && Math.floor(number) === number;
-};
-
-exports.isVague = function (object) {
-	return object && typeof object === 'object';
-};
-
-exports.isList = function (list) {
-	return (
-		exports.isVague(list) &&
-		exports.isInteger(list.length) && list.length >= 0);
-};
-
-
-exports.isNaN = isNaN;
-
-
-exports.nativeTypeOf = function (object) {
-	var nativeType = object.toString(object);
-
-	return nativeType.substring(8, nativeType.length - 1);
-};
-
-exports.typeOf = function (object) {
-	return exports.isObject(object) ?
-		object.constructor.name || 'Object' :
-		exports.nativeTypeOf(object);
-};
-
-
-exports.safeApply = function (func, args, that) {
-	return exports.isFunction(func) ?
-		func.apply(that || this, args) :
-		undefined;
-};
-
-
-exports.enumerate = function (object, iterator, that, _ignoreForEach) {
-	if (!object) return object;
-
-	that = that || this;
-
-	if (!_ignoreForEach && exports.isFunction(object.forEach))
-		return object.forEach(iterator, that);
-
-	var key = 0, end = object.length;
-
-	if (exports.isString(object)) {
-		for (; key < end; key += 1) iterator.call(that, object.charAt(key), key, object);
-
-	} if (exports.isList(object)) {
-		for (; key < end; key += 1) iterator.call(that, object[key], key, object);
-
-	} else if (exports.isInteger(object)) {
-		if (object < 0) {
-			end = 0;
-			key = object;
-
-		} else end = object;
-
-		for (; key < end; key += 1) iterator.call(that, key, Math.abs(key), object);
-
-	} else exports.enumerateObject(object, iterator, that);
-
-	return object;
-};
-
-exports.enumerateObject = function (object, iterator, that) {
-	var key;
-
-	for (key in object) iterator.call(that, object[key], key, object);
-
-	return object;
-}
-
-
-exports.assignAll = function (target, giver, filter, that, _method) {
-	if (!exports.isMutable(target)) return target;
-
-	_method = _method === 'enumerate' ? _method : 'enumerateObject';
-
-	exports[_method](giver, function (value, key) {
-		if (!exports.safeApply(filter, arguments, that || target)) {
-			target[key] = value;
-		}
-	});
-
-	return target;
-};
-
-exports.assignList = function (target, giver, filter, that) {
-	return exports.assignAll(target, giver, filter, that, 'enumerate');
-};
-
-exports.assign = function (target, giver, filter, that) {
-	return exports.assignAll(target, giver, function (_, key) {
-		if (!giver.hasOwnProperty(key)) return true;
-
-		return exports.safeApply(filter, arguments, that || this);
-	}, that);
-};
-
-
-exports.toArray = function (object, begin, end) {
-	if (exports.isArray()) return exports.isInteger(begin) ?
-		exports.slice(object, begin, end) :
-		object;
-
-	if (exports.isArguments(object) || exports.isString(object))
-		return exports.slice(object, begin, end);
-
-	if (!exports.isList(object)) return undefined;
-
-	if (!exports.isInteger(end)) end = object.length;
-
-	begin = begin || 0;
-
-	return exports.assignList([], object, function (_, i) {
-		return begin > i || i >= end;
-	});
-};
-
-},{}],109:[function(require,module,exports){
 module.exports = require('./lib/transparency');
 
-},{"./lib/transparency":116}],110:[function(require,module,exports){
+},{"./lib/transparency":115}],109:[function(require,module,exports){
 var Attribute, AttributeFactory, BooleanAttribute, Class, Html, Text, helpers, _,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -29270,7 +29102,7 @@ Class = (function(_super) {
 
 })(Attribute);
 
-},{"../lib/lodash":115,"./helpers":113}],111:[function(require,module,exports){
+},{"../lib/lodash":114,"./helpers":112}],110:[function(require,module,exports){
 var Context, Instance, after, before, chainable, cloneNode, _ref;
 
 _ref = require('./helpers'), before = _ref.before, after = _ref.after, chainable = _ref.chainable, cloneNode = _ref.cloneNode;
@@ -29330,7 +29162,7 @@ module.exports = Context = (function() {
 
 })();
 
-},{"./helpers":113,"./instance":114}],112:[function(require,module,exports){
+},{"./helpers":112,"./instance":113}],111:[function(require,module,exports){
 var AttributeFactory, Checkbox, Element, ElementFactory, Input, Radio, Select, TextArea, VoidElement, helpers, _, _ref, _ref1, _ref2, _ref3, _ref4,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -29548,7 +29380,7 @@ Radio = (function(_super) {
 
 })(Checkbox);
 
-},{"../lib/lodash.js":115,"./attributeFactory":110,"./helpers":113}],113:[function(require,module,exports){
+},{"../lib/lodash.js":114,"./attributeFactory":109,"./helpers":112}],112:[function(require,module,exports){
 var ElementFactory, expando, html5Clone, _getElements;
 
 ElementFactory = require('./elementFactory');
@@ -29645,7 +29477,7 @@ exports.consoleLogger = function() {
 
 exports.log = exports.nullLogger;
 
-},{"./elementFactory":112}],114:[function(require,module,exports){
+},{"./elementFactory":111}],113:[function(require,module,exports){
 var Instance, chainable, helpers, _,
   __hasProp = {}.hasOwnProperty;
 
@@ -29807,7 +29639,7 @@ module.exports = Instance = (function() {
 
 })();
 
-},{"../lib/lodash.js":115,"./helpers":113}],115:[function(require,module,exports){
+},{"../lib/lodash.js":114,"./helpers":112}],114:[function(require,module,exports){
  var _ = {};
 
 _.toString = Object.prototype.toString;
@@ -29848,7 +29680,7 @@ _.isBoolean = function(obj) {
 
 module.exports = _;
 
-},{}],116:[function(require,module,exports){
+},{}],115:[function(require,module,exports){
 var $, Context, Transparency, helpers, _,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -29924,7 +29756,7 @@ if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
   });
 }
 
-},{"../lib/lodash.js":115,"./context":111,"./helpers":113}],117:[function(require,module,exports){
+},{"../lib/lodash.js":114,"./context":110,"./helpers":112}],116:[function(require,module,exports){
 //     Underscore.js 1.5.2
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -31202,7 +31034,7 @@ if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
 
 }).call(this);
 
-},{}],118:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 var backbone = require('backbone');
 var Artist = require('./../model/Artist');
 
@@ -31211,7 +31043,7 @@ var Artists = backbone.Collection.extend({
 });
 
 module.exports = Artists;
-},{"./../model/Artist":120,"backbone":1}],119:[function(require,module,exports){
+},{"./../model/Artist":119,"backbone":1}],118:[function(require,module,exports){
 var backbone = require('backbone');
 var Station = require('./../model/Station');
 
@@ -31221,13 +31053,13 @@ var Stations = backbone.Collection.extend({
 
 
 module.exports = Stations;
-},{"./../model/Station":121,"backbone":1}],120:[function(require,module,exports){
+},{"./../model/Station":120,"backbone":1}],119:[function(require,module,exports){
 var backbone = require('backbone');
 
 var Artist = backbone.Model.extend({});
 
 module.exports = Artist;
-},{"backbone":1}],121:[function(require,module,exports){
+},{"backbone":1}],120:[function(require,module,exports){
 var Track = require('./Track');
 var levelsfm = require('./../services/levelsfm');
 var backbone = require('backbone');
@@ -31278,12 +31110,14 @@ var Station = backbone.Model.extend({
 	},
 
 	voteUp: function (track) {
-		return levelsfm.get('/stations/' + this.id + '/tracks/up/' + track.id);
+		return levelsfm.post('/users/' + this._user.get('username') + '/stations/' + this.id + '/tracks/up/' + track.id, {
+			token:this._user.get('token')
+		});
 	},
 
 
 	voteDown: function (track) {
-		return levelsfm.del('/stations/' + this.id + '/tracks/' + track.id);
+		return levelsfm.del('/users/' + this._user.get('username') + '/stations/' + this.id + '/tracks/' + track.id + '/token/' + this._user.get('token'));
 	}
 
 });
@@ -31312,7 +31146,7 @@ Station.create = function (user, artistPermalink) {
 
 
 module.exports = Station;
-},{"./../services/levelsfm":126,"./Track":122,"backbone":1,"soundcloud":82}],122:[function(require,module,exports){
+},{"./../services/levelsfm":125,"./Track":121,"backbone":1,"soundcloud":82}],121:[function(require,module,exports){
 var pigeon = require('pigeon');
 var backbone = require('backbone');
 
@@ -31320,7 +31154,7 @@ var Track = backbone.Model.extend();
 
 
 module.exports = Track
-},{"backbone":1,"pigeon":54}],123:[function(require,module,exports){
+},{"backbone":1,"pigeon":54}],122:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var backbone = require('backbone');
 var q = require('q');
@@ -31450,7 +31284,7 @@ Object.defineProperties(Tuner.prototype, {
 
 
 module.exports = Tuner;
-},{"backbone":1,"events":12,"q":60}],124:[function(require,module,exports){
+},{"backbone":1,"events":12,"q":60}],123:[function(require,module,exports){
 if (typeof document === 'undefined') {
 	return;
 }
@@ -31586,7 +31420,7 @@ if (userData) {
 
 
 module.exports = User;
-},{"./../collection/Stations":119,"./../services/levelsfm":126,"backbone":1,"jakobmattsson-client-cookies":36}],125:[function(require,module,exports){
+},{"./../collection/Stations":118,"./../services/levelsfm":125,"backbone":1,"jakobmattsson-client-cookies":36}],124:[function(require,module,exports){
 (function (process,__dirname){
 require('./utils/polyfills');
 var stateless = require('stateless');
@@ -31705,7 +31539,7 @@ stateless
 	.activate();
 
 }).call(this,require("/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"),"/")
-},{"./model/Station":121,"./model/User":124,"./ui/user/UserNameLabel":141,"./utils/polyfills":142,"./views/user/Login":146,"./views/user/Radio":147,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],126:[function(require,module,exports){
+},{"./model/Station":120,"./model/User":123,"./ui/user/UserNameLabel":140,"./utils/polyfills":141,"./views/user/Login":145,"./views/user/Radio":146,"/Users/davidturissini/Sites/levels-fm/node_modules/grunt-browserify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":19,"backbone":1,"jquery":37,"q":60,"stateless":107}],125:[function(require,module,exports){
 var pigeon = require('pigeon');
 var domain = /*'http://localhost:3000'; //*/'http://levelsfm-backend.herokuapp.com';
 
@@ -31729,7 +31563,7 @@ exports.del = function (path, params) {
 exports.post = function (path, params) {
 	return fetch(path, params, 'post');
 }
-},{"pigeon":54}],127:[function(require,module,exports){
+},{"pigeon":54}],126:[function(require,module,exports){
 var soundcloud = require('soundcloud').soundcloud;
 
 var soundcloudClientId = '99308a0184193d62e064cb770f4c1eae';
@@ -31743,7 +31577,7 @@ exports.get = soundcloud.api;
 exports.buildStreamUrl = function (track) {
 	return track.get('stream_url') + '?client_id=' + soundcloudClientId;
 }
-},{"soundcloud":82}],128:[function(require,module,exports){
+},{"soundcloud":82}],127:[function(require,module,exports){
 var pigeon = require('pigeon');
 
 module.exports = {
@@ -31753,7 +31587,7 @@ module.exports = {
 	}
 
 }
-},{"pigeon":54}],129:[function(require,module,exports){
+},{"pigeon":54}],128:[function(require,module,exports){
 var jquery = require('jquery');
 
 function PlayPauseButton (element, player) {
@@ -31798,7 +31632,7 @@ PlayPauseButton.prototype = {
 
 
 module.exports = PlayPauseButton;
-},{"jquery":37}],130:[function(require,module,exports){
+},{"jquery":37}],129:[function(require,module,exports){
 var soundcloud = require('./../services/soundcloud');
 var transparency = require('transparency');
 var jquery = require('jquery');
@@ -31883,7 +31717,7 @@ Object.defineProperties(Player.prototype, {
 });
 
 module.exports = Player;
-},{"./../services/soundcloud":127,"events":12,"jquery":37,"transparency":109}],131:[function(require,module,exports){
+},{"./../services/soundcloud":126,"events":12,"jquery":37,"transparency":108}],130:[function(require,module,exports){
 var transparency = require('transparency');
 var jquery = require('jquery');
 
@@ -31939,7 +31773,7 @@ Progress.prototype = {
 
 
 module.exports = Progress;
-},{"jquery":37,"transparency":109}],132:[function(require,module,exports){
+},{"jquery":37,"transparency":108}],131:[function(require,module,exports){
 function SkipButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -31957,7 +31791,7 @@ SkipButton.prototype = {
 
 
 module.exports = SkipButton;
-},{}],133:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 var jquery = require('jquery');
 
 function StationList (element, tuner) {
@@ -32007,7 +31841,7 @@ StationList.prototype = {
 };
 
 module.exports = StationList;
-},{"jquery":37}],134:[function(require,module,exports){
+},{"jquery":37}],133:[function(require,module,exports){
 var transparency = require('transparency');
 var soundcloud = require('soundcloud').soundcloud;
 
@@ -32059,7 +31893,7 @@ TrackMeta.prototype = {
 };
 
 module.exports = TrackMeta;
-},{"soundcloud":82,"transparency":109}],135:[function(require,module,exports){
+},{"soundcloud":82,"transparency":108}],134:[function(require,module,exports){
 var transparency = require('transparency');
 
 function Time (element, player) {
@@ -32116,7 +31950,7 @@ Time.prototype = {
 };
 
 module.exports = Time;
-},{"transparency":109}],136:[function(require,module,exports){
+},{"transparency":108}],135:[function(require,module,exports){
 var PlayPauseButton = require('./PlayPauseButton');
 var Progress = require('./Progress');
 var Time = require('./TrackTime');
@@ -32151,7 +31985,7 @@ TunerFaceplate.prototype = {
 };
 
 module.exports = TunerFaceplate;
-},{"./PlayPauseButton":129,"./Progress":131,"./SkipButton":132,"./StationList":133,"./TrackMeta":134,"./TrackTime":135,"./VoteDownButton":137,"./VoteUpButton":138}],137:[function(require,module,exports){
+},{"./PlayPauseButton":128,"./Progress":130,"./SkipButton":131,"./StationList":132,"./TrackMeta":133,"./TrackTime":134,"./VoteDownButton":136,"./VoteUpButton":137}],136:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -32171,7 +32005,7 @@ VoteUpButton.prototype = {
 
 
 module.exports = VoteUpButton;
-},{}],138:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 function VoteUpButton (element, tuner) {
 	this._element = element;
 	this._tuner = tuner;
@@ -32188,7 +32022,7 @@ VoteUpButton.prototype = {
 };
 
 module.exports = VoteUpButton;
-},{}],139:[function(require,module,exports){
+},{}],138:[function(require,module,exports){
 var User = require('./../../model/User');
 var EventEmitter = require('events').EventEmitter;
 
@@ -32219,7 +32053,7 @@ proto._onSubmit = function (evt) {
 }
 
 module.exports = LoginForm;
-},{"./../../model/User":124,"events":12}],140:[function(require,module,exports){
+},{"./../../model/User":123,"events":12}],139:[function(require,module,exports){
 var User = require('./../../model/User');
 var EventEmitter = require('events').EventEmitter;
 
@@ -32259,7 +32093,7 @@ proto._onSubmit = function (evt) {
 }
 
 module.exports = RegisterForm;
-},{"./../../model/User":124,"events":12}],141:[function(require,module,exports){
+},{"./../../model/User":123,"events":12}],140:[function(require,module,exports){
 function UserNameLabel (el, user) {
 	this._user = user;
 	this._el = el;
@@ -32277,7 +32111,11 @@ UserNameLabel.prototype = {
 }
 
 module.exports = UserNameLabel;
-},{}],142:[function(require,module,exports){
+},{}],141:[function(require,module,exports){
+if (typeof window === 'undefined') {
+    return;
+}
+
 // requestAnimationFrame
 (function() {
     var lastTime = 0;
@@ -32351,7 +32189,7 @@ module.exports = UserNameLabel;
         }
     };
 }(DOMParser));
-},{}],143:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 var backbone = require('backbone');
 var mustache = require('mustache');
 var template = require('./../../services/templates');
@@ -32395,7 +32233,7 @@ var ArtistList = backbone.View.extend({
 });
 
 module.exports = ArtistList;
-},{"./../../services/templates":128,"backbone":1,"mustache":38,"q":60}],144:[function(require,module,exports){
+},{"./../../services/templates":127,"backbone":1,"mustache":38,"q":60}],143:[function(require,module,exports){
 var soundcloud = require('./../../services/soundcloud');
 var EventEmitter = require('events').EventEmitter;
 var Artist = require('./../../model/Artist');
@@ -32494,7 +32332,7 @@ proto.onKeyUp = function () {
 */
 
 module.exports = ArtistSearchField;
-},{"./../../model/Artist":120,"./../../services/soundcloud":127,"backbone":1,"events":12}],145:[function(require,module,exports){
+},{"./../../model/Artist":119,"./../../services/soundcloud":126,"backbone":1,"events":12}],144:[function(require,module,exports){
 var Station = require('./../../model/Station');
 var EventEmitter = require('events').EventEmitter;
 var ArtistsCollection = require('./../../collection/Artists');
@@ -32613,7 +32451,7 @@ Object.defineProperties(StationCreateForm.prototype, {
 });
 
 module.exports = StationCreateForm;
-},{"./../../collection/Artists":118,"./../../model/Station":121,"./../../services/templates":128,"./../artist/List":143,"./../artist/SearchInput":144,"backbone":1,"events":12,"jquery":37,"mustache":38}],146:[function(require,module,exports){
+},{"./../../collection/Artists":117,"./../../model/Station":120,"./../../services/templates":127,"./../artist/List":142,"./../artist/SearchInput":143,"backbone":1,"events":12,"jquery":37,"mustache":38}],145:[function(require,module,exports){
 var backbone = require('backbone');
 var templates = require('./../../services/templates');
 var LoginForm = require('./../../ui/user/LoginForm');
@@ -32656,7 +32494,7 @@ var Login = backbone.View.extend({
 
 module.exports = Login;
 
-},{"./../../services/templates":128,"./../../ui/user/LoginForm":139,"./../../ui/user/RegisterForm":140,"backbone":1,"jquery":37}],147:[function(require,module,exports){
+},{"./../../services/templates":127,"./../../ui/user/LoginForm":138,"./../../ui/user/RegisterForm":139,"backbone":1,"jquery":37}],146:[function(require,module,exports){
 var StationForm = require('./../../views/station/CreateForm');
 var Tuner = require('./../../model/Tuner');
 var TunerFaceplate = require('./../../ui/TunerFaceplate');
@@ -32728,4 +32566,4 @@ var Radio = backbone.View.extend({
 });
 
 module.exports = Radio;
-},{"./../../model/Tuner":123,"./../../model/User":124,"./../../services/templates":128,"./../../ui/Player":130,"./../../ui/TunerFaceplate":136,"./../../views/station/CreateForm":145,"backbone":1,"jquery":37}]},{},[125])
+},{"./../../model/Tuner":122,"./../../model/User":123,"./../../services/templates":127,"./../../ui/Player":129,"./../../ui/TunerFaceplate":135,"./../../views/station/CreateForm":144,"backbone":1,"jquery":37}]},{},[124])

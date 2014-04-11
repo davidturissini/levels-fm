@@ -48,12 +48,14 @@ var Station = backbone.Model.extend({
 	},
 
 	voteUp: function (track) {
-		return levelsfm.get('/stations/' + this.id + '/tracks/up/' + track.id);
+		return levelsfm.post('/users/' + this._user.get('username') + '/stations/' + this.id + '/tracks/up/' + track.id, {
+			token:this._user.get('token')
+		});
 	},
 
 
 	voteDown: function (track) {
-		return levelsfm.del('/stations/' + this.id + '/tracks/' + track.id);
+		return levelsfm.del('/users/' + this._user.get('username') + '/stations/' + this.id + '/tracks/' + track.id + '/token/' + this._user.get('token'));
 	}
 
 });
