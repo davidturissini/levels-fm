@@ -31298,6 +31298,7 @@ var backbone = require('backbone');
 var cookies = require('jakobmattsson-client-cookies');
 var anonymousUser;
 var currentUser = null;
+var q = require('q');
 
 
 var User = backbone.Model.extend({
@@ -31323,6 +31324,12 @@ var User = backbone.Model.extend({
 		}
 	},
 
+	destroyCookie: function () {
+		cookies.set('user', undefined);
+		this.clear();
+		this.set(User.anonymous().attributes);
+	},
+
 	logout: function () {
 		var user = this;
 		return levelsfm.post('/logout', {
@@ -31330,9 +31337,7 @@ var User = backbone.Model.extend({
 			token:this.get('token')
 		})
 		.then(function () {
-			cookies.set('user', undefined);
-			user.clear();
-			user.set(User.anonymous().attributes);
+			user.destroyCookie();
 			user.trigger('login_status_change', {
 				user:user
 			});
@@ -31345,6 +31350,21 @@ var User = backbone.Model.extend({
 
 	isLoggedIn: function () {
 		return (typeof this.get('token') === 'string');
+	},
+
+	verifyLoggedIn: function () {
+		var defer;
+
+		if (this.isAnonymous()) {
+			defer = q.defer();
+			defer.resolve(false);
+			return defer.promise;
+		}
+
+		return levelsfm.get('/users/' + this.get('username') + '/verify/token/' + this.get('token'))
+			.then(function (response) {
+				return response.verified;
+			});
 	}
 
 });
@@ -31423,7 +31443,7 @@ if (userData) {
 
 
 module.exports = User;
-},{"./../collection/Stations":118,"./../services/levelsfm":125,"backbone":1,"jakobmattsson-client-cookies":36}],124:[function(require,module,exports){
+},{"./../collection/Stations":118,"./../services/levelsfm":125,"backbone":1,"jakobmattsson-client-cookies":36,"q":60}],124:[function(require,module,exports){
 (function (process,__dirname){
 require('./utils/polyfills');
 var stateless = require('stateless');
@@ -31495,16 +31515,6 @@ stateless
 
 		onLoad: function () {
 			var user = User.current();
-			var content;
-			var body = jquery(document.getElementById('content'));
-			body.empty();
-
-			var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
-
-			jquery(document.body).on('click', '.user-logout-link', function (e) {
-				e.preventDefault();
-				user.logout();
-			});
 
 			user.on('login_status_change', function (evt) {
 				if (user.isLoggedIn()) {
@@ -31515,14 +31525,32 @@ stateless
 			});
 
 
-			if (user.isAnonymous()) {
-				showLoginView();
-			} else {
-				showRadioView(user);
-			}
+			jquery(document.body).on('click', '.user-logout-link', function (e) {
+				e.preventDefault();
+				user.logout();
+			});
 
+			user.verifyLoggedIn()
+				.then(function (verified) {
+					var content;
+					var body = jquery(document.getElementById('content'));
+					body.empty();
 
+					if (verified === false) {
+						user.destroyCookie();
+						return showLoginView();
+					}
+
+					var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
+					showRadioView(user);
+
+				})
+
+				.fail(function (e) {
+					console.log(e.stack);
+				});
 		}
+
 	},{
 		path:'/users/:username',
 

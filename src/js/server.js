@@ -68,16 +68,6 @@ stateless
 
 		onLoad: function () {
 			var user = User.current();
-			var content;
-			var body = jquery(document.getElementById('content'));
-			body.empty();
-
-			var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
-
-			jquery(document.body).on('click', '.user-logout-link', function (e) {
-				e.preventDefault();
-				user.logout();
-			});
 
 			user.on('login_status_change', function (evt) {
 				if (user.isLoggedIn()) {
@@ -88,14 +78,32 @@ stateless
 			});
 
 
-			if (user.isAnonymous()) {
-				showLoginView();
-			} else {
-				showRadioView(user);
-			}
+			jquery(document.body).on('click', '.user-logout-link', function (e) {
+				e.preventDefault();
+				user.logout();
+			});
 
+			user.verifyLoggedIn()
+				.then(function (verified) {
+					var content;
+					var body = jquery(document.getElementById('content'));
+					body.empty();
 
+					if (verified === false) {
+						user.destroyCookie();
+						return showLoginView();
+					}
+
+					var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
+					showRadioView(user);
+
+				})
+
+				.fail(function (e) {
+					console.log(e.stack);
+				});
 		}
+
 	},{
 		path:'/users/:username',
 

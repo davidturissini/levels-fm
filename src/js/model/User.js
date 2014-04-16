@@ -8,6 +8,7 @@ var backbone = require('backbone');
 var cookies = require('jakobmattsson-client-cookies');
 var anonymousUser;
 var currentUser = null;
+var q = require('q');
 
 
 var User = backbone.Model.extend({
@@ -33,6 +34,12 @@ var User = backbone.Model.extend({
 		}
 	},
 
+	destroyCookie: function () {
+		cookies.set('user', undefined);
+		this.clear();
+		this.set(User.anonymous().attributes);
+	},
+
 	logout: function () {
 		var user = this;
 		return levelsfm.post('/logout', {
@@ -40,9 +47,7 @@ var User = backbone.Model.extend({
 			token:this.get('token')
 		})
 		.then(function () {
-			cookies.set('user', undefined);
-			user.clear();
-			user.set(User.anonymous().attributes);
+			user.destroyCookie();
 			user.trigger('login_status_change', {
 				user:user
 			});
@@ -55,6 +60,21 @@ var User = backbone.Model.extend({
 
 	isLoggedIn: function () {
 		return (typeof this.get('token') === 'string');
+	},
+
+	verifyLoggedIn: function () {
+		var defer;
+
+		if (this.isAnonymous()) {
+			defer = q.defer();
+			defer.resolve(false);
+			return defer.promise;
+		}
+
+		return levelsfm.get('/users/' + this.get('username') + '/verify/token/' + this.get('token'))
+			.then(function (response) {
+				return response.verified;
+			});
 	}
 
 });
