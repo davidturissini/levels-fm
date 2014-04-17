@@ -8,14 +8,18 @@ module.exports = function(grunt) {
 		watch: {
 		  scripts: {
 		    files: ['./src/js/**/*.js'],
-		    tasks: ['default']
+		    tasks: ['browserify']
+		  },
+		  css: {
+		    files: ['./src/scss/**/*.scss'],
+		    tasks: ['sass']
 		  }
 		},
 
 		sass: {
 			dist: {
 				files: {
-					'public/styles/levelsfm.css': 'src/stylesheets/levelsfm.css'
+					'public/styles/levelsfm.css': 'src/scss/levelsfm.scss'
 					}
 				}
 		},

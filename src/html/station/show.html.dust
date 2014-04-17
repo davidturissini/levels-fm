@@ -1,7 +1,6 @@
 {> "layouts/main" /}
 
 {<main}
-
+	{> "track/_meta.html.dust" /}
 	{> "track/_player.html.dust" /}
-
 {/main}

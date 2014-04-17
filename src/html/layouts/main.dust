@@ -16,12 +16,12 @@
 
 	</head>
 	<body>
-		<header class="site-header">
+		<header class="site-header clearfix">
 			<menu id="user" class="user-menu">
 				Hello, <span id="user-name-label"></span>
 				<a href="#logout" class="user-logout-link" data-router="ignore">Logout</a>
 			</menu>
-			<h1 class="site-title">Levels.fm</h1>
+			<h1 class="site-title"><a href="/">Levels.fm</a></h1>
 		</header>
 		<section id="content" class="content">
 			{+main}{/main}

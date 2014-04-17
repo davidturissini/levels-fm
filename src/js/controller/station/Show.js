@@ -12,12 +12,6 @@ StationShowController.prototype = {
 
 	getStation: function () {
 		return this._station;
-	},
-
-	getTemplateData: function () {
-		return {
-			station:this._station.attributes
-		}
 	}
 
 };

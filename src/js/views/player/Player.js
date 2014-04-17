@@ -1,5 +1,4 @@
-var soundcloud = require('./../services/soundcloud');
-var transparency = require('transparency');
+var soundcloud = require('./../../services/soundcloud');
 var jquery = require('jquery');
 var events = require('events');
 

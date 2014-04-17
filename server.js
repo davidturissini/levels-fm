@@ -18,13 +18,8 @@ app.configure(function(){
 });
 
 
-
 app.get('/users/:username/stations/:station_id', function (req, res) {
-
-	this._controller = StationShowController.create(req.params);
-	res.render('station/show.html.dust', this._controller.getTemplateData());
-	
-
+	res.render('station/show.html.dust', {});
 });
 
 
