@@ -3,11 +3,11 @@
 	<head>
 		<title></title>
 		<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/3.12.0/build/cssreset/cssreset-min.css">
-		<link rel="stylesheet" type="text/css" href="/stylesheets/levelsfm.css" />
-		<meta name="description" content="" />
-		<meta name="og:title" content="" />
-		<meta name="og:description" content="" />
-		<meta name="og:image" content="" />
+		<link rel="stylesheet" type="text/css" href="/styles/levelsfm.css" />
+		<meta name="description" content="{description}" />
+		<meta name="og:title" content="{ogTitle}" />
+		<meta name="og:description" content="{ogDescription}" />
+		<meta name="og:image" content="{ogImage}" />
 		<meta name="viewport" content="width=device-width">
 
 		<script type="text/template" id="template-artist-list">
@@ -24,7 +24,7 @@
 			<h1 class="site-title">Levels.fm</h1>
 		</header>
 		<section id="content" class="content">
-			
+			{+main}{/main}
 		</section>
 		<script src="/js/levelsfm.js"></script>
 	</body>

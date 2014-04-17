@@ -1,0 +1,7 @@
+{> "layouts/main" /}
+
+{<main}
+
+	{> "track/_player.html.dust" /}
+
+{/main}

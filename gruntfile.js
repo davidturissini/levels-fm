@@ -7,24 +7,33 @@ module.exports = function(grunt) {
 
 		watch: {
 		  scripts: {
-		    files: ['./src/js/**/*.js', '!./src/js/levelsfm.js'],
+		    files: ['./src/js/**/*.js'],
 		    tasks: ['default']
 		  }
 		},
 
+		sass: {
+			dist: {
+				files: {
+					'public/styles/levelsfm.css': 'src/stylesheets/levelsfm.css'
+					}
+				}
+		},
+
 		browserify: {
 			dist: {
-			    src: 'src/js/server.js',
-			    dest: 'src/js/levelsfm.js'
+			    src: 'src/js/levelsfm.js',
+			    dest: 'public/js/levelsfm.js'
 			}
 		}
 
 	});
 
+	grunt.loadNpmTasks('grunt-sass');
 	grunt.loadNpmTasks('grunt-browserify');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-newer');
 
-	grunt.registerTask('default', ['browserify']);
+	grunt.registerTask('default', ['browserify', 'sass']);
 
 }

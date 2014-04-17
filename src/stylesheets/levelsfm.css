@@ -68,6 +68,47 @@ a:hover {
 	display:none;
 }
 
+@-webkit-keyframes error-shake {
+
+	0% {
+		-webkit-transform:translate3d(0, 0, 0);
+	}
+
+	20% {
+		-webkit-transform:translate3d(-30px, 0, 0);
+	}
+	
+	40% {
+		-webkit-transform:translate3d(30px, 0, 0);
+	}
+
+	60% {
+		-webkit-transform:translate3d(-30px, 0, 0);
+	}
+
+	80% {
+		-webkit-transform:translate3d(30px, 0, 0);
+	}
+
+	100% {
+		-webkit-transform:translate3d(0, 0, 0);
+	}
+
+}
+
+.user-login-form.error {
+	-webkit-animation:error-shake 200ms;
+}
+
+.errors {
+	color:#f00;
+	font-size:0.8em;
+}
+
+.errors .error {
+	padding:10px 0;
+}
+
 .user-login input {
 	display:block;
 	font-size:2em;

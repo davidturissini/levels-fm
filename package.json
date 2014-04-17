@@ -5,7 +5,8 @@
   "private": true,
   "main":"src/js/server",
   "devDependencies": {
-    "grunt-newer":"0.7.0"
+    "grunt-newer":"0.7.0",
+    "grunt-sass":"x.x.x"
   },
   "dependencies": {
     "grunt":"~0.4.2",
@@ -21,7 +22,10 @@
     "jquery":"x.x.x",
     "backbone":"x.x.x",
     "jakobmattsson-client-cookies":"0.1.5",
-    "mustache":"x.x.x"
+    "mustache":"x.x.x",
+    "dustjs-linkedin":"x.x.x",
+    "express": "~3.4.8",
+    "consolidate":"x.x.x"
   },
   "engines": {
     "node": "0.10.25",

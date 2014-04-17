@@ -1,15 +1,38 @@
-require('./utils/polyfills');
-var stateless = require('stateless');
-var Q = require('q');
-var Station = require('./model/Station');
-var User = require('./model/User');
-var jquery = require('jquery');
-var backbone = require('backbone');
-var LoginView = require('./views/user/Login');
-var RadioView = require('./views/user/Radio');
-var UserNameLabel = require('./ui/user/UserNameLabel');
+var express = require('express');
+var serverPort = process.env.PORT || 3000;
+var fs = require('fs');
+var cons = require('consolidate');
+
+var StationShowController = require('./src/js/controller/station/Show');
+
+var app = express();
+app.engine('dust', cons.dust);
 
 
+app.configure(function(){
+    app.set('view engine', 'dust');
+    app.set('views', __dirname + '/src/html');
+    app.use(express.static(__dirname + '/public', {redirect: false}));
+    app.use(express.bodyParser());
+    app.use(app.router);
+});
+
+
+
+app.get('/users/:username/stations/:station_id', function (req, res) {
+
+	this._controller = StationShowController.create(req.params);
+	res.render('station/show.html.dust', this._controller.getTemplateData());
+	
+
+});
+
+
+app.listen(serverPort);
+console.log('Listening on port ' + serverPort);
+
+
+/*
 backbone.ajax = function () {
 	return jquery.ajax.apply(jquery, arguments);
 }
@@ -51,6 +74,11 @@ function showLoginView () {
 
 
 var staticDir = process.browser ? '' : __dirname + '/../';
+
+
+
+
+/*
 stateless
 	.setPort(process.env.PORT || 5000)
 	.setServerRoot(staticDir)
@@ -62,7 +90,9 @@ stateless
 
 		action:function (document, routeData) {
 			var defer = Q.defer();
-			defer.resolve();
+			defer.resolve({
+				foo:'bar'
+			});
 			return defer.promise;
 		},
 
@@ -93,7 +123,7 @@ stateless
 						user.destroyCookie();
 						return showLoginView();
 					}
-
+					
 					var userNameLabel = new UserNameLabel(document.getElementById('user-name-label'), user);
 					showRadioView(user);
 
@@ -105,19 +135,32 @@ stateless
 		}
 
 	},{
-		path:'/users/:username',
+		path:'/users/:username/stations/:station_id',
 
-		template:staticDir + '/html/home/index.html',
+		template:staticDir + '/html/station/show.html',
 
-		action:function (document, routeData) {
-			var defer = Q.defer();
-			defer.resolve();
-			return defer.promise;
+		action:function (document, routeData, templateString) {
+			var defer = q.defer();
+			this._controller = StationShowController.create(routeData);
+
+			var compiled = dustjs.compile(templateString, 'stationShow');
+			dustjs.loadSource(compiled);
+			dustjs.render('stationShow', this._controller.getTemplateData(), function (err, out) {
+			  console.log(out);
+			  defer.resolve(out);
+			});
+			
+			return defer.promise
+
+				.fail(function (e) {
+					console.log(e.stack);
+				});
 		},
 
 		onLoad: function () {
-			console.log('yay!');
+			
 		}
 
 	}])
 	.activate();
+*/
